@@ -1,0 +1,7 @@
+<launch>
+    <arg name="config" default="$(find peak_cam)/launch/params/peak_cam_params.yaml" />
+
+    <node pkg="peak_cam" type="peak_cam_node" name="peak_cam_node" output="screen">
+        <rosparam command="load" file="$(arg config)"/>
+    </node>
+</launch>
