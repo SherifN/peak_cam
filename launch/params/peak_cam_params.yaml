@@ -1,0 +1,41 @@
+
+# In this parameter file you can change acquisition settings of the camera. 
+# Before that, you should try to open the camera with the ids_visioncockpit for an approximate setting
+
+# To add more parameters to your camera please view the IDS Vision Reference at 
+# https://de.ids-imaging.com/manuals-ids-peak.html 
+# and modify acquisition_parameters.hpp and setDeviceParameters() function in peak_cam class
+
+camera_topic: /camera/image_raw
+
+# choose which device to enter 
+# first device at "0" by default
+selectedDevice: 0
+
+# Pixelformat
+# In IDS Implemented: ["Mono8", "Mono10", "Mono12", "Mono10p", "Mono12p", "BayerRG8", "BayerRG10", "BayerRG12", "BayerRG10p", "BayerRG12p", "RGB8", "RGB10p32", "BGR8", "BGR10p32"]
+# Possible: ["Mono8", "RGB8", "BGR8"] as string! 
+PixelFormat: "Mono8"
+
+# ExposureTime in μs
+# limits the Acquisition Framerate
+ExposureTime: 5000
+
+# AcquisitionFrameRate in Hz
+# WATCH OUT when initializing that ExposureTime [sek] < 1 / AcquisitionFrameRate [sek]
+# WATCH OUT when AcquisitionFrameRate is too high there might be some latency. Check "rostopic hz /cameratopic"
+AcquisitionFrameRate: 120
+
+
+# ExposureAuto Setting 
+# If ExposureAuto On set ExposureTime to any value ExposureTime [sek] < 1 / AcquisitionFrameRate [sek]
+# Possible: ["Off", "Once", "Continuous"] as string! 
+ExposureAuto: "Continuous"
+
+# GainAuto Setting 
+# Possible: ["Off", "Once", "Continuous"] as string! 
+GainAuto: "Continuous"
+
+# GainSelector Setting 
+# Possible: ["AnalogAllSource", "AnalogAll", "AnalogRed", "AnalogGreen", "AnalogBlue", "DigitalAll", "DigitalRed", "DigitalGreen", "DigitalBlue"] as string! 
+GainSelector: "AnalogAll"
