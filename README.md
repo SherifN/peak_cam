@@ -13,7 +13,7 @@ A Linux ROS C++ Node that wraps the driver API for IDS vision cameras using IDS 
 
 0. Clone the repository to your Linux computer
 
-1. Generate a ROS workspace and
+1. Generate a ROS workspace
 
     `mkdir -p camera_ws/src/` 
 
