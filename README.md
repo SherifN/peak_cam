@@ -13,7 +13,7 @@ A Linux ROS C++ Node that wraps the driver API for IDS vision cameras using IDS 
 
 0. Clone the repository to your Linux computer
 
-1. Generate a ROS workspace and
+1. Generate a ROS workspace
 
     `mkdir -p camera_ws/src/` 
 
@@ -23,7 +23,7 @@ A Linux ROS C++ Node that wraps the driver API for IDS vision cameras using IDS 
     
     `cd camera_ws/ && catkin_make && source devel/setup.bash`
 
-2. Set parameters such as ROS-Topic and acquisition rate in the "peak_cam_params.yaml" file
+2. Set parameters such as ROS-Topic and acquisition rate in the "peak_cam_params.yaml" file in `launch/params/`
 
 3. Plug the IDS vision camera and launch the node 
 
