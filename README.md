@@ -29,6 +29,7 @@ A Linux ROS C++ Node that wraps the driver API for IDS vision cameras using IDS 
 
     `roslaunch peak_cam peak_cam_node.launch`
 
+For multiple cameras, create a `.launch` and a `.yaml` file for each camera.
 
 > Hint: Sometimes the cameras are only accesible as root. Try `sudo -s` in your terminal and launch the node again.
 
