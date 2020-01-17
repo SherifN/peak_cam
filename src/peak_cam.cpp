@@ -119,14 +119,6 @@ void Peak_Cam::setDeviceParameters()
 {
     try
     {
-        //Set ExposureTime Parameter
-        m_nodeMapRemoteDevice->FindNode<peak::core::nodes::FloatNode>("ExposureTime")->SetValue(peak_params.ExposureTime);
-        ROS_INFO_STREAM("[PEAK_CAM]: ExposureTime is set to " << peak_params.ExposureTime << " microseconds");
-
-        //Set AcquisitionFrameRate Parameter
-        m_nodeMapRemoteDevice->FindNode<peak::core::nodes::FloatNode>("AcquisitionFrameRate")->SetValue(peak_params.AcquisitionFrameRate);
-        ROS_INFO_STREAM("[PEAK_CAM]: AcquisitionFrameRate is set to " << peak_params.AcquisitionFrameRate << " Hz");
-
         //Set GainAuto Parameter
         m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("GainAuto")->SetCurrentEntry(peak_params.GainAuto);
         ROS_INFO_STREAM("[PEAK_CAM]: GainAuto is set to '" << peak_params.GainAuto << "'");
@@ -138,6 +130,22 @@ void Peak_Cam::setDeviceParameters()
         //Set ExposureAuto Parameter
         m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("ExposureAuto")->SetCurrentEntry(peak_params.ExposureAuto);
         ROS_INFO_STREAM("[PEAK_CAM]: ExposureAuto is set to '" << peak_params.ExposureAuto << "'");
+
+
+        //Set ExposureTime Parameter
+        if(peak_params.ExposureAuto == "Continuous" || peak_params.ExposureAuto == "Once")
+        {
+            m_nodeMapRemoteDevice->FindNode<peak::core::nodes::FloatNode>("ExposureTime")->SetValue(1 / (1e-6 * 2 * peak_params.AcquisitionFrameRate));
+        }
+        else
+        {
+            m_nodeMapRemoteDevice->FindNode<peak::core::nodes::FloatNode>("ExposureTime")->SetValue(peak_params.ExposureTime);
+            ROS_INFO_STREAM("[PEAK_CAM]: ExposureTime is set to " << peak_params.ExposureTime << " microseconds");
+        }
+
+        //Set AcquisitionFrameRate Parameter
+        m_nodeMapRemoteDevice->FindNode<peak::core::nodes::FloatNode>("AcquisitionFrameRate")->SetValue(peak_params.AcquisitionFrameRate);
+        ROS_INFO_STREAM("[PEAK_CAM]: AcquisitionFrameRate is set to " << peak_params.AcquisitionFrameRate << " Hz");
 
         //Set PixelFormat Parameter
         m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("PixelFormat")->SetCurrentEntry(peak_params.PixelFormat);
