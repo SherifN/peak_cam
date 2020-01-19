@@ -147,6 +147,10 @@ void Peak_Cam::setDeviceParameters()
         m_nodeMapRemoteDevice->FindNode<peak::core::nodes::FloatNode>("AcquisitionFrameRate")->SetValue(peak_params.AcquisitionFrameRate);
         ROS_INFO_STREAM("[PEAK_CAM]: AcquisitionFrameRate is set to " << peak_params.AcquisitionFrameRate << " Hz");
 
+        //Set Gamma Parameter
+        m_nodeMapRemoteDevice->FindNode<peak::core::nodes::FloatNode>("Gamma")->SetValue(peak_params.Gamma);
+        ROS_INFO_STREAM("[PEAK_CAM]: Gamma is set to " << peak_params.Gamma);
+
         //Set PixelFormat Parameter
         m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("PixelFormat")->SetCurrentEntry(peak_params.PixelFormat);
         ROS_INFO_STREAM("[PEAK_CAM]: PixelFormat is set to '" << peak_params.PixelFormat << "'");
@@ -283,6 +287,8 @@ void Peak_Cam::reconfigureRequest(const Config &config, uint32_t level)
 {
     peak_params.ExposureTime = config.ExposureTime;
     peak_params.AcquisitionFrameRate = config.AcquisitionFrameRate;
+    peak_params.Gamma = config.Gamma;
+
     peak_params.selectedDevice = config.selectedDevice;
 
     peak_params.GainAuto = config.GainAuto;
