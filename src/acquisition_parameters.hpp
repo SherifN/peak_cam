@@ -51,6 +51,7 @@ struct Peak_Params
     int AcquisitionFrameRate{10};
     int maxImageHeight{1};
     int maxImageWidth{1};
+    double Gamma{1.2};
     std::string ExposureAuto{"Off"};
     std::string GainAuto{"Off"};
     std::string GainSelector;

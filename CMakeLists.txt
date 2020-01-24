@@ -30,8 +30,6 @@ find_package(catkin REQUIRED COMPONENTS
         cv_bridge
         dynamic_reconfigure
         image_transport
-        message_filters
-        message_generation
         roscpp
         sensor_msgs
         std_msgs
@@ -134,7 +132,7 @@ generate_dynamic_reconfigure_options(
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES cone_filter
-  CATKIN_DEPENDS cv_bridge dynamic_reconfigure image_transport message_filters message_generation roscpp sensor_msgs std_msgs
+  CATKIN_DEPENDS cv_bridge dynamic_reconfigure image_transport roscpp sensor_msgs std_msgs
   
   #  DEPENDS
 )
