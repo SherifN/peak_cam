@@ -15,21 +15,21 @@ selectedDevice: 0
 # Pixelformat
 # In IDS Implemented: ["Mono8", "Mono10", "Mono12", "Mono10p", "Mono12p", "BayerRG8", "BayerRG10", "BayerRG12", "BayerRG10p", "BayerRG12p", "RGB8", "RGB10p32", "BGR8", "BGR10p32"]
 # Possible: ["Mono8", "RGB8", "BGR8"] as string! 
-PixelFormat: "Mono8"
+PixelFormat: "RGB8"
 
 # ExposureTime in μs
 # limits the Acquisition Framerate
 # When ExposureAuto is set to "Once" or "Continuous" the value won't be used
-ExposureTime: 14000
+ExposureTime: 5000
 
 # AcquisitionFrameRate in Hz
 # WATCH OUT when AcquisitionFrameRate is too high there might be some latency. Check "rostopic hz /cameratopic"
-AcquisitionFrameRate: 70
+AcquisitionFrameRate: 25
 
 # Gamma
 # Range [0.3, ..., 3.0]
 # If no Gamma correction ist needed set to 1.0
-Gamma: 1.2
+Gamma: 1.0
 
 # ExposureAuto Setting 
 # If ExposureAuto On set ExposureTime to any value ExposureTime [sek] < 1 / AcquisitionFrameRate [sek]
@@ -42,4 +42,4 @@ GainAuto: "Continuous"
 
 # GainSelector Setting 
 # Possible: ["AnalogAllSource", "AnalogAll", "AnalogRed", "AnalogGreen", "AnalogBlue", "DigitalAll", "DigitalRed", "DigitalGreen", "DigitalBlue"] as string! 
-GainSelector: "AnalogAll"
+GainSelector: "DigitalAll"
