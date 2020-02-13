@@ -1,6 +1,6 @@
 # peak_cam
 
-A Linux ROS C++ Node that wraps the driver API for IDS vision cameras using IDS peak software. Tested on Ubuntu 18.04 LTS.
+A Linux [ROS C++ Node](https://wiki.ros.org/peak_cam) that wraps the driver API for IDS vision cameras using IDS peak software. Tested on Ubuntu 18.04 LTS.
 
 ## How to run
 
