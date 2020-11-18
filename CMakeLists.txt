@@ -7,6 +7,9 @@ add_compile_options(-std=c++14)
 set(CMAKE_BUILD_TYPE Release)
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 
+set(IDS_IPL_VERSION 1.1.8)
+set(IDS_VERSION 1.1.14)
+
 ## Not finding OpenCV? Normally the needed packages should already be included in ROS
 ## Install OpenCV and copy the builded folder into opt
 ## Remove the hashtags from the following three lines
@@ -20,10 +23,10 @@ set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 
 include_directories(
         src
-        /usr/include/ids_peak-1.0.14/
-        /usr/include/ids_peak_ipl-1.0.2/
-        /usr/lib/ids_peak-1.0.14/
-        /usr/lib/ids_peak_ipl-1.0.2/
+	/usr/include/ids_peak-${IDS_VERSION}/
+	/usr/include/ids_peak_ipl-${IDS_IPL_VERSION}/
+	/usr/lib/ids_peak-${IDS_VERSION}/
+	/usr/lib/ids_peak_ipl-${IDS_IPL_VERSION}/
 )
 
 find_package(catkin REQUIRED COMPONENTS
