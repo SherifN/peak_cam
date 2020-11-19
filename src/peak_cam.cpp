@@ -98,7 +98,7 @@ void Peak_Cam::openDevice()
             }    
 
             // start the data stream
-            m_dataStream->StartAcquisition(peak::core::AcquisitionStartMode::Default, peak::core::INFINITE_NUMBER);
+            m_dataStream->StartAcquisition(peak::core::AcquisitionStartMode::Default, peak::core::DataStream::INFINITE_NUMBER);
             // start the device
             m_nodeMapRemoteDevice->FindNode<peak::core::nodes::CommandNode>("AcquisitionStart")->Execute();
 
