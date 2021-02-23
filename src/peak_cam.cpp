@@ -44,20 +44,20 @@ namespace peak_cam
 
 Peak_Cam::Peak_Cam(ros::NodeHandle nh) : nh_private(nh)
 {
-    std::string camera_topic;
-    nh_private.getParam("camera_topic", camera_topic);
+  std::string camera_topic;
+  nh_private.getParam("camera_topic", camera_topic);
 
-    ROS_INFO("Setting parameters to:");
-    ROS_INFO("  camera_topic: %s", camera_topic.c_str());
+  ROS_INFO("Setting parameters to:");
+  ROS_INFO("  camera_topic: %s", camera_topic.c_str());
 
-    image_publisher = nh.advertise<sensor_msgs::Image>(camera_topic, 1);
-   
-    f = boost::bind(&Peak_Cam::reconfigureRequest, this, _1, _2);
-    server.setCallback(f);
+  image_publisher = nh.advertise<sensor_msgs::Image>(camera_topic, 1);
+ 
+  f = boost::bind(&Peak_Cam::reconfigureRequest, this, _1, _2);
+  server.setCallback(f);
 
-    peak::Library::Initialize();
+  peak::Library::Initialize();
 
-    openDevice();
+  openDevice();
 }
 
 Peak_Cam::~Peak_Cam()
@@ -97,8 +97,7 @@ void Peak_Cam::openDevice()
             ROS_INFO_ONCE("Devices available: ");
             for (const auto& deviceDescriptor : deviceManager.Devices())
             {
-                ROS_INFO_ONCE("%lu: %s %s %s", i, deviceDescriptor->ModelName().c_str(),
-                         deviceDescriptor->SerialNumber().c_str(), deviceDescriptor->DisplayName().c_str());
+                ROS_INFO("%lu: %s", i, deviceDescriptor->DisplayName().c_str());
                 ++i;
             }
             
@@ -124,6 +123,13 @@ void Peak_Cam::openDevice()
 
             // get the remote device node map
             m_nodeMapRemoteDevice = m_device->RemoteDevice()->NodeMaps().at(0); 
+
+	    std::vector<std::shared_ptr<peak::core::nodes::Node>> nodes = m_nodeMapRemoteDevice->Nodes();
+
+	    for(int x = 0; x < nodes.size(); x++)
+            {
+              ROS_INFO("node: %s", nodes[x]->Name().c_str());
+	    }
 
             // sets Acquisition Parameters of the camera -> see yaml
             setDeviceParameters();
@@ -166,6 +172,20 @@ void Peak_Cam::setDeviceParameters()
 {
     try
     {
+        int maxWidth, maxHeight = 0;
+
+        maxWidth = m_nodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("WidthMax")->Value();
+        ROS_INFO_STREAM("[PEAK_CAM]: maxWidth '" << maxWidth << "'");
+        maxHeight = m_nodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("HeightMax")->Value();
+        ROS_INFO_STREAM("[PEAK_CAM]: maxHeight '" << maxHeight << "'");
+        // Set Width, Height
+        m_nodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("Width")->SetValue(peak_params.ImageWidth);
+        ROS_INFO_STREAM("[PEAK_CAM]: ImageWidth is set to '" << peak_params.ImageWidth << "'");
+        m_nodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("Height")->SetValue(peak_params.ImageHeight);
+        ROS_INFO_STREAM("[PEAK_CAM]: ImageHeight is set to '" << peak_params.ImageHeight << "'");
+        m_nodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("OffsetX")->SetValue((maxWidth - peak_params.ImageWidth) / 2);
+        m_nodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("OffsetY")->SetValue((maxHeight - peak_params.ImageHeight) / 2);
+	
         //Set GainAuto Parameter
         m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("GainAuto")->SetCurrentEntry(peak_params.GainAuto);
         ROS_INFO_STREAM("[PEAK_CAM]: GainAuto is set to '" << peak_params.GainAuto << "'");
@@ -257,7 +277,7 @@ void Peak_Cam::acquisitionLoop()
             // cv_bridge Image is converted to sensor_msgs/Image to publish on ROS Topic
             cv_bridge::CvImage cvBridgeImage;
             cvBridgeImage.header.stamp = ros::Time::now();
-            cvBridgeImage.header.frame_id = "camera";
+            cvBridgeImage.header.frame_id = peak_params.selectedDevice;
             cvBridgeImage.encoding = image_for_encoding.encoding; 
             cvBridgeImage.image = cvImage; 
 
@@ -332,8 +352,8 @@ void Peak_Cam::reconfigureRequest(const Config &config, uint32_t level)
     peak_params.ExposureAuto = config.ExposureAuto;
     peak_params.PixelFormat = config.PixelFormat;
     
-    peak_params.maxImageHeight = config.maxImageHeight;
-    peak_params.maxImageWidth = config.maxImageWidth;
+    peak_params.ImageHeight = config.ImageHeight;
+    peak_params.ImageWidth = config.ImageWidth;
 }
 
 } // namespace peak_cam

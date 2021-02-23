@@ -10,7 +10,10 @@ camera_topic: image_raw
 
 # choose which device to enter 
 # first device at "0" by default
-selectedDevice: "000000"
+selectedDevice: "4103432591"
+
+ImageHeight: 320
+ImageWidth: 1088
 
 # Pixelformat
 # In IDS Implemented: ["Mono8", "Mono10", "Mono12", "Mono10p", "Mono12p", "BayerRG8", "BayerRG10", "BayerRG12", "BayerRG10p", "BayerRG12p", "RGB8", "RGB10p32", "BGR8", "BGR10p32"]
@@ -24,7 +27,7 @@ ExposureTime: 5000
 
 # AcquisitionFrameRate in Hz
 # WATCH OUT when AcquisitionFrameRate is too high there might be some latency. Check "rostopic hz /cameratopic"
-AcquisitionFrameRate: 1
+AcquisitionFrameRate: 5
 
 # Gamma
 # Range [0.3, ..., 3.0]

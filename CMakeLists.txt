@@ -7,8 +7,8 @@ add_compile_options(-std=c++14)
 set(CMAKE_BUILD_TYPE Release)
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 
-set(IDS_IPL_VERSION 1.1.8)
-set(IDS_VERSION 1.1.14)
+set(IDS_IPL_VERSION 1.2.0)
+set(IDS_VERSION 1.2.0)
 
 ## Not finding OpenCV? Normally the needed packages should already be included in ROS
 ## Install OpenCV and copy the builded folder into opt
