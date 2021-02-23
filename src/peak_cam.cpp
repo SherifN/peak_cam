@@ -47,6 +47,9 @@ Peak_Cam::Peak_Cam(ros::NodeHandle nh) : nh_private(nh)
     std::string camera_topic;
     nh_private.getParam("camera_topic", camera_topic);
 
+    ROS_INFO("Setting parameters to:");
+    ROS_INFO("  camera_topic: %s", camera_topic.c_str());
+
     image_publisher = nh.advertise<sensor_msgs::Image>(camera_topic, 1);
    
     f = boost::bind(&Peak_Cam::reconfigureRequest, this, _1, _2);
