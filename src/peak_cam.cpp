@@ -60,6 +60,18 @@ Peak_Cam::Peak_Cam(ros::NodeHandle nh) : nh_private(nh)
     openDevice();
 }
 
+Peak_Cam::~Peak_Cam()
+{
+  ROS_INFO("Shutting down");
+
+  // closing camera und peak library
+  closeDevice();
+  peak::Library::Close();
+
+  ROS_INFO("Peak library closed");
+  ros::shutdown();
+}
+
 void Peak_Cam::openDevice()
 {
     auto& deviceManager = peak::DeviceManager::Instance();  
@@ -70,12 +82,44 @@ void Peak_Cam::openDevice()
         {
             // update the device manager
             deviceManager.Update();
+           
+ 	    // exit program if no device was found
+            if (deviceManager.Devices().empty())
+            {
+               ROS_INFO("No device found. Exiting program");
+               // close library before exiting program
+               peak::Library::Close();
+               return;
+            }
             
-            // get vector of device descriptors
+	    // list all available devices
+            size_t i = 0;
+            ROS_INFO_ONCE("Devices available: ");
+            for (const auto& deviceDescriptor : deviceManager.Devices())
+            {
+                ROS_INFO_ONCE("%lu: %s %s %s", i, deviceDescriptor->ModelName().c_str(),
+                         deviceDescriptor->SerialNumber().c_str(), deviceDescriptor->DisplayName().c_str());
+                ++i;
+            }
+            
+	    // set i back to 0
+            i = 0;
+	    size_t selectedDevice = 0;
+            for (const auto& deviceDescriptor : deviceManager.Devices())
+            {
+                if (peak_params.selectedDevice == deviceDescriptor->SerialNumber())
+                {
+                    ROS_INFO_ONCE("SELECTING NEW DEVICE: %lu", i);
+		    selectedDevice = i;
+		}
+                ++i;
+            }
+	    
+	    // get vector of device descriptors
             auto deviceDesrciptors = deviceManager.Devices();
 
             // open the selected device
-            m_device = deviceManager.Devices().at((size_t)peak_params.selectedDevice)->OpenDevice(peak::core::DeviceAccessType::Control);
+            m_device = deviceManager.Devices().at(selectedDevice)->OpenDevice(peak::core::DeviceAccessType::Control);
             ROS_INFO_STREAM("[PEAK_CAM]: " << m_device->ModelName() << " found");
 
             // get the remote device node map
@@ -232,19 +276,6 @@ void Peak_Cam::acquisitionLoop()
             ROS_ERROR("[PEAK_CAM]: Restart peak cam node!");
         }        
     }
-
-    if (!acquisitionLoop_running)
-    {
-        // Entering over ctrl-C 
-
-        ROS_INFO("[PEAK_CAM]: Shutting down");
-
-        // closing camera und peak library
-        closeDevice();
-        peak::Library::Close();
-
-        ROS_INFO("[PEAK_CAM]: Peak library closed");
-    }
 }
 
 void Peak_Cam::closeDevice()
@@ -255,11 +286,12 @@ void Peak_Cam::closeDevice()
         try
         {
             m_nodeMapRemoteDevice->FindNode<peak::core::nodes::CommandNode>("AcquisitionStop")->Execute();
-            ROS_INFO("[PEAK_CAM]: Executing 'AcquisitionStop'");
+            ROS_INFO("Executing 'AcquisitionStop'");
+            acquisitionLoop_running = false;
         }
         catch (const std::exception& e)
         {
-            ROS_ERROR_STREAM("[PEAK_CAM]: EXCEPTION: " << e.what());
+            ROS_ERROR_STREAM("EXCEPTION: " << e.what());
         }
     }
 
@@ -277,11 +309,12 @@ void Peak_Cam::closeDevice()
                 m_dataStream->RevokeBuffer(buffer);
             }
 
-            ROS_INFO("[PEAK_CAM]: 'AcquisitionStop' Succesfull");
+            ROS_INFO("'AcquisitionStop' Succesful");
+            acquisitionLoop_running = false;
         }
         catch (const std::exception& e)
         {
-            ROS_ERROR_STREAM("[PEAK_CAM]: EXCEPTION: " << e.what());
+            ROS_ERROR_STREAM("EXCEPTION: " << e.what());
         }
     }
 }
