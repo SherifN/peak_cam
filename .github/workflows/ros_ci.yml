@@ -38,7 +38,7 @@ jobs:
         with:
           path: src/peak_cam
       - name: install IDS peak dependencies
-        run: apt install libqt5core5a libqt5gui5 libqt5widgets5 libqt5quick5 qml-module-qtquick-window2 qml-module-qtquick2 qtbase5-dev qtdeclarative5-dev qml-module-qtquick-dialogs qml-module-qtquick-controls qml-module-qtquick-layouts libusb-1.0-0
+        run: apt-get install libqt5core5a libqt5gui5 libqt5widgets5 libqt5quick5 qml-module-qtquick-window2 qml-module-qtquick2 qtbase5-dev qtdeclarative5-dev qml-module-qtquick-dialogs qml-module-qtquick-controls qml-module-qtquick-layouts libusb-1.0-0
       - name: install IDS peak
         run: dpkg -i src/peak_cam/ids_peak/ids-peak-linux-x86-1.2.0.1-64.deb
       - name: setup ROS environment
