@@ -38,7 +38,7 @@ jobs:
         with:
           path: src/peak_cam
       - name: install IDS peak
-        run: ls src/peak_cam && sudo dpkg -i src/peak_cam/ids_peak/ids-peak-linux-x86-1.2.0.1-64.deb
+        run: dpkg -i src/peak_cam/ids_peak/ids-peak-linux-x86-1.2.0.1-64.deb
       - name: setup ROS environment
         uses: ros-tooling/setup-ros@master
         with:
