@@ -47,7 +47,7 @@ jobs:
       - name: install IDS peak dependencies
         run: /usr/bin/sudo apt-get install -y libqt5core5a libqt5gui5 libqt5widgets5 libqt5quick5 qml-module-qtquick-window2 qml-module-qtquick2 qtbase5-dev qtdeclarative5-dev qml-module-qtquick-dialogs qml-module-qtquick-controls qml-module-qt-labs-folderlistmodel qml-module-qt-labs-settings qml-module-qtquick-layouts libusb-1.0-0
       - name: install IDS peak
-        run: /usr/bin/sudo dpkg -i src/peak_cam/ids_peak/ids-peak-linux-x86-1.2.0.1-64.deb
+        run: sudo mkdir -p /etc/udev/rules.d/ && /usr/bin/sudo dpkg -i src/peak_cam/ids_peak/ids-peak-linux-x86-1.2.0.1-64.deb
       - name: build and test
         uses: ros-tooling/action-ros-ci@master
         with:
