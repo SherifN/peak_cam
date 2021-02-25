@@ -6,11 +6,16 @@
 # https://de.ids-imaging.com/manuals-ids-peak.html 
 # and modify acquisition_parameters.hpp and setDeviceParameters() function in peak_cam class
 
-camera_topic: /camera/image_raw
+camera_topic: image_raw
 
-# choose which device to enter 
-# first device at "0" by default
-selectedDevice: 0
+# choose which device to enter by entering its serial number here
+# if you dont know it, run this node once and all serial nodes should be printed out
+selectedDevice: "0000000000"
+
+# configure your desired image size
+# needs to be divisble by 8 and smaller than your imager size (Max Width, Max Height)
+ImageHeight: 320
+ImageWidth: 1088
 
 # Pixelformat
 # In IDS Implemented: ["Mono8", "Mono10", "Mono12", "Mono10p", "Mono12p", "BayerRG8", "BayerRG10", "BayerRG12", "BayerRG10p", "BayerRG12p", "RGB8", "RGB10p32", "BGR8", "BGR10p32"]
@@ -24,7 +29,7 @@ ExposureTime: 5000
 
 # AcquisitionFrameRate in Hz
 # WATCH OUT when AcquisitionFrameRate is too high there might be some latency. Check "rostopic hz /cameratopic"
-AcquisitionFrameRate: 25
+AcquisitionFrameRate: 1
 
 # Gamma
 # Range [0.3, ..., 3.0]
