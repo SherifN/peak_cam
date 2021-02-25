@@ -76,6 +76,7 @@ class Peak_Cam
 
 public:
     Peak_Cam(ros::NodeHandle nh);
+    ~Peak_Cam();
     
     // acquisitionLoop function and bool are public to run on particular thread
     void acquisitionLoop();

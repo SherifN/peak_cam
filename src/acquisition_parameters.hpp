@@ -46,11 +46,11 @@ namespace peak_cam
 
 struct Peak_Params
 {
-    int selectedDevice{0}; //by default first device to enter
-    int ExposureTime{5000};
-    int AcquisitionFrameRate{10};
-    int maxImageHeight{1};
-    int maxImageWidth{1};
+    std::string selectedDevice{"000000"}; // default to all 0's
+    int ExposureTime{100};
+    int AcquisitionFrameRate{1};
+    int ImageHeight{480};
+    int ImageWidth{640};
     double Gamma{1.2};
     std::string ExposureAuto{"Off"};
     std::string GainAuto{"Off"};
