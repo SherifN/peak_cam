@@ -126,11 +126,6 @@ void Peak_Cam::openDevice()
 
 	    std::vector<std::shared_ptr<peak::core::nodes::Node>> nodes = m_nodeMapRemoteDevice->Nodes();
 
-	    for(int x = 0; x < nodes.size(); x++)
-            {
-              ROS_INFO("node: %s", nodes[x]->Name().c_str());
-	    }
-
             // sets Acquisition Parameters of the camera -> see yaml
             setDeviceParameters();
 
@@ -200,11 +195,7 @@ void Peak_Cam::setDeviceParameters()
 
 
         //Set ExposureTime Parameter
-        if(peak_params.ExposureAuto == "Continuous" || peak_params.ExposureAuto == "Once")
-        {
-            m_nodeMapRemoteDevice->FindNode<peak::core::nodes::FloatNode>("ExposureTime")->SetValue(1 / (1e-6 * 2 * peak_params.AcquisitionFrameRate));
-        }
-        else
+        if(peak_params.ExposureAuto == "Off")
         {
             m_nodeMapRemoteDevice->FindNode<peak::core::nodes::FloatNode>("ExposureTime")->SetValue(peak_params.ExposureTime);
             ROS_INFO_STREAM("[PEAK_CAM]: ExposureTime is set to " << peak_params.ExposureTime << " microseconds");
