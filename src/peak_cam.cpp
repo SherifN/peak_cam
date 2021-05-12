@@ -170,9 +170,9 @@ void Peak_Cam::setDeviceParameters()
         int maxWidth, maxHeight = 0;
 
         maxWidth = m_nodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("WidthMax")->Value();
-        ROS_INFO_STREAM("[PEAK_CAM]: maxWidth '" << maxWidth << "'");
+        //ROS_INFO_STREAM("[PEAK_CAM]: maxWidth '" << maxWidth << "'");
         maxHeight = m_nodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("HeightMax")->Value();
-        ROS_INFO_STREAM("[PEAK_CAM]: maxHeight '" << maxHeight << "'");
+        //ROS_INFO_STREAM("[PEAK_CAM]: maxHeight '" << maxHeight << "'");
         // Set Width, Height
         m_nodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("Width")->SetValue(peak_params.ImageWidth);
         ROS_INFO_STREAM("[PEAK_CAM]: ImageWidth is set to '" << peak_params.ImageWidth << "'");
