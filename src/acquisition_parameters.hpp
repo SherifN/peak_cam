@@ -33,9 +33,6 @@
 // CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE 
 // POSSIBILITY OF SUCH DAMAGE. 
-
-
-
 #include <peak_ipl/peak_ipl.hpp>
 #include <sensor_msgs/image_encodings.h>
 #include <sensor_msgs/Image.h>
@@ -48,6 +45,7 @@ struct Peak_Params
 {
     std::string selectedDevice{"000000"}; // default to all 0's
     int ExposureTime{100};
+    std::string TriggerMode{"Off"};
     std::string TriggerSource{"Off"};
     std::string TriggerActivation{"RisingEdge"};
     int TriggerDivider{1};
