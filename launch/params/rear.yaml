@@ -8,12 +8,10 @@
 
 camera_topic: image_raw
 
-# choose which device to enter by entering its serial number here
-# if you dont know it, run this node once and all serial nodes should be printed out
-selectedDevice: "0000000000"
+# choose which device to enter 
+# first device at "0" by default
+selectedDevice: "4103432588"
 
-# configure your desired image size
-# needs to be divisble by 8 and smaller than your imager size (Max Width, Max Height)
 ImageHeight: 320
 ImageWidth: 1088
 

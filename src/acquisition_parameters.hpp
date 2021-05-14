@@ -56,6 +56,8 @@ struct Peak_Params
     std::string GainAuto{"Off"};
     std::string GainSelector;
     std::string PixelFormat;
+    std::string TriggerMode{"Off"};
+    int TriggerSource{0};
 };
 
 }
