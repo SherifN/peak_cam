@@ -83,23 +83,23 @@ public:
     std::atomic<bool> acquisitionLoop_running{false};
 
 private:
-    ros::NodeHandle m_node_handle;
+    ros::NodeHandle m_nodeHandle;
 
-    ros::Publisher m_image_publisher;
+    ros::Publisher m_imagePublisher;
 
-    dynamic_reconfigure::Server<Config> m_server;
-    dynamic_reconfigure::Server<Config>::CallbackType m_f;
+    dynamic_reconfigure::Server<Config> m_paramsServer;
+    dynamic_reconfigure::Server<Config>::CallbackType m_handleParams;
 
     std::shared_ptr<peak::core::DataStream> m_dataStream;
     std::shared_ptr<peak::core::Device> m_device;
     std::shared_ptr<peak::core::NodeMap> m_nodeMapRemoteDevice;
-    peak::ipl::PixelFormatName m_pixel_format;
+    peak::ipl::PixelFormatName m_pixelFormat;
     sensor_msgs::Image m_image;
 
     // Camera Parameters
-    Peak_Params m_peak_params;
+    Peak_Params m_peakParams;
 
-    uint8_t m_bytes_per_pixel;
+    uint8_t m_bytesPerPixel;
 
     void reconfigureRequest(const Config &, uint32_t);
     void openDevice();
