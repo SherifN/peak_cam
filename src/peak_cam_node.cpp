@@ -38,7 +38,7 @@
 
 #include <iostream>
 #include <ros/ros.h>
-#include "peak_cam.hpp"
+#include "peak_cam/peak_cam.hpp"
 #include <thread> 
 #include <csignal>
 
