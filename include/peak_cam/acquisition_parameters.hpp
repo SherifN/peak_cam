@@ -47,20 +47,18 @@ namespace peak_cam
 
 struct Peak_Params
 {
-    std::string selectedDevice{"000000"}; // default to all 0's
-    int ExposureTime{100};
-    int AcquisitionFrameRate{1};
-    int ImageHeight{480};
-    int ImageWidth{640};
-    double Gamma{1.2};
-    std::string ExposureAuto{"Off"};
-    std::string GainAuto{"Off"};
-    std::string GainSelector;
-    std::string PixelFormat;
-    std::string TriggerMode{"Off"};
-    int TriggerSource{0};
+  std::string selectedDevice{"000000"}; // default to all 0's
+  int ExposureTime{100};
+  int AcquisitionFrameRate{1};
+  int ImageHeight{480};
+  int ImageWidth{640};
+  double Gamma{1.2};
+  std::string ExposureAuto{"Off"};
+  std::string GainAuto{"Off"};
+  std::string GainSelector;
+  std::string PixelFormat;
+  std::string TriggerMode{"Off"};
+  int TriggerSource{0};
 };
-
 }
-
 #endif  // PEAK_CAM__ACQUISITION_PARAMETERS_HPP_

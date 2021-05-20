@@ -33,20 +33,19 @@
 // CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
-
 #include "peak_cam/peak_cam.hpp"
 
 namespace peak_cam
 {
-Peak_Cam::Peak_Cam(ros::NodeHandle nh) : m_node_handle(nh)
+Peak_Cam::Peak_Cam(ros::NodeHandle nh) : m_nodeHandle(nh)
 {
   std::string camera_topic;
-  m_node_handle.getParam("camera_topic", camera_topic);
+  m_nodeHandle.getParam("camera_topic", camera_topic);
   ROS_INFO("Setting parameters to:");
   ROS_INFO("  camera_topic: %s", camera_topic.c_str());
-  m_image_publisher = nh.advertise<sensor_msgs::Image>(camera_topic, 1);
-  f = boost::bind(&Peak_Cam::reconfigureRequest, this, _1, _2);
-  server.setCallback(f);
+  m_imagePublisher = m_nodeHandle.advertise<sensor_msgs::Image>(camera_topic, 1);
+  m_handleParams = boost::bind(&Peak_Cam::reconfigureRequest, this, _1, _2);
+  m_paramsServer.setCallback(m_handleParams);
   peak::Library::Initialize();
   openDevice();
 }
@@ -62,297 +61,233 @@ Peak_Cam::~Peak_Cam()
 }
 void Peak_Cam::openDevice()
 {
-    auto& deviceManager = peak::DeviceManager::Instance();  
-    //Select Device and set Parameters Once
-    while (!acquisitionLoop_running)
+  auto& deviceManager = peak::DeviceManager::Instance();  
+  //Select Device and set Parameters Once
+  while (!acquisitionLoop_running)
+  {
+    try
     {
-        try
+      // update the device manager
+      deviceManager.Update();
+     
+      // exit program if no device was found
+      if (deviceManager.Devices().empty())
+      {
+        ROS_INFO("No device found. Exiting program");
+        // close library before exiting program
+        peak::Library::Close();
+        return;
+      }
+      
+      // list all available devices
+      size_t i = 0;
+      ROS_INFO_ONCE("Devices available: ");
+      for (const auto& deviceDescriptor : deviceManager.Devices())
+      {
+        ROS_INFO("%lu: %s", i, deviceDescriptor->DisplayName().c_str());
+        ++i;
+      }
+        
+      // set i back to 0
+      i = 0;
+      size_t selectedDevice = 0;
+      for (const auto& deviceDescriptor : deviceManager.Devices())
+      {
+        if (m_peakParams.selectedDevice == deviceDescriptor->SerialNumber())
         {
-            // update the device manager
-            deviceManager.Update();
-           
- 	    // exit program if no device was found
-            if (deviceManager.Devices().empty())
-            {
-               ROS_INFO("No device found. Exiting program");
-               // close library before exiting program
-               peak::Library::Close();
-               return;
-            }
-            
-	    // list all available devices
-            size_t i = 0;
-            ROS_INFO_ONCE("Devices available: ");
-            for (const auto& deviceDescriptor : deviceManager.Devices())
-            {
-                ROS_INFO("%lu: %s", i, deviceDescriptor->DisplayName().c_str());
-                ++i;
-            }
-            
-	    // set i back to 0
-            i = 0;
-	    size_t selectedDevice = 0;
-            for (const auto& deviceDescriptor : deviceManager.Devices())
-            {
-                if (peak_params.selectedDevice == deviceDescriptor->SerialNumber())
-                {
-                    ROS_INFO_ONCE("SELECTING NEW DEVICE: %lu", i);
-		    selectedDevice = i;
-		}
-                ++i;
-            }
-	    
-	    // get vector of device descriptors
-            auto deviceDesrciptors = deviceManager.Devices();
-
-            // open the selected device
-            m_device = deviceManager.Devices().at(selectedDevice)->OpenDevice(peak::core::DeviceAccessType::Control);
-            ROS_INFO_STREAM("[PEAK_CAM]: " << m_device->ModelName() << " found");
-
-            // get the remote device node map
-            m_nodeMapRemoteDevice = m_device->RemoteDevice()->NodeMaps().at(0); 
-
-	    std::vector<std::shared_ptr<peak::core::nodes::Node>> nodes = m_nodeMapRemoteDevice->Nodes();
-
-            // sets Acquisition Parameters of the camera -> see yaml
-            setDeviceParameters();
-
-            // open the first data stream
-            m_dataStream = m_device->DataStreams().at(0)->OpenDataStream(); 
-            // get payload size
-            auto payloadSize = m_nodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("PayloadSize")->Value();
-            
-            // get number of buffers to allocate
-            // the buffer count depends on your application, here the minimum required number for the data stream
-            auto bufferCountMax = m_dataStream->NumBuffersAnnouncedMinRequired();
-            
-            // allocate and announce image buffers and queue them
-            for (uint64_t bufferCount = 0; bufferCount < bufferCountMax; ++bufferCount)
-            {
-                auto buffer = m_dataStream->AllocAndAnnounceBuffer(static_cast<size_t>(payloadSize), nullptr);
-                m_dataStream->QueueBuffer(buffer);
-            }    
-
-            // start the data stream
-            m_dataStream->StartAcquisition(peak::core::AcquisitionStartMode::Default, peak::core::DataStream::INFINITE_NUMBER);
-            // start the device
-            m_nodeMapRemoteDevice->FindNode<peak::core::nodes::CommandNode>("AcquisitionStart")->Execute();
-
-            ROS_INFO_STREAM("[PEAK_CAM]: " << m_device->ModelName() << " connected");
-
-            acquisitionLoop_running = true;
-
-        }
-        catch (const std::exception& e)
-        {
-            ROS_ERROR_STREAM_ONCE("[PEAK_CAM]: EXCEPTION: " << e.what());
-            ROS_ERROR_STREAM("[PEAK_CAM]: Device at port " << peak_params.selectedDevice << " not connected or must run as root!");
+          ROS_INFO_ONCE("SELECTING NEW DEVICE: %lu", i);
+          selectedDevice = i;
         }
         ++i;
       }
+   
       // get vector of device descriptors
       auto deviceDesrciptors = deviceManager.Devices();
       // open the selected device
       m_device = deviceManager.Devices().at(selectedDevice)->OpenDevice(peak::core::DeviceAccessType::Control);
       ROS_INFO_STREAM("[PEAK_CAM]: " << m_device->ModelName() << " found");
       // get the remote device node map
-      m_nodeMapRemoteDevice = m_device->RemoteDevice()->NodeMaps().at(0);
-      // only needed if you want to print out all the setting options for the peak device
-      //std::vector<std::shared_ptr<peak::core::nodes::Node>> nodes = m_nodeMapRemoteDevice->Nodes();
-      //for(int x = 0; x < nodes.size(); x++)
-      //{
-      //  ROS_INFO("node: %s", nodes[x]->Name().c_str());
-      //}
+      m_nodeMapRemoteDevice = m_device->RemoteDevice()->NodeMaps().at(0); 
+      std::vector<std::shared_ptr<peak::core::nodes::Node>> nodes = m_nodeMapRemoteDevice->Nodes();
       // sets Acquisition Parameters of the camera -> see yaml
       setDeviceParameters();
       // open the first data stream
-      m_dataStream = m_device->DataStreams().at(0)->OpenDataStream();
+      m_dataStream = m_device->DataStreams().at(0)->OpenDataStream(); 
       // get payload size
       auto payloadSize = m_nodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("PayloadSize")->Value();
+      
       // get number of buffers to allocate
       // the buffer count depends on your application, here the minimum required number for the data stream
       auto bufferCountMax = m_dataStream->NumBuffersAnnouncedMinRequired();
+      
       // allocate and announce image buffers and queue them
-      for (uint64_t bufferCount = 0; bufferCount < bufferCountMax; ++bufferCount) {
-        auto buffer = m_dataStream->AllocAndAnnounceBuffer(static_cast<size_t>(payloadSize), nullptr);
-        m_dataStream->QueueBuffer(buffer);
-      }
+      for (uint64_t bufferCount = 0; bufferCount < bufferCountMax; ++bufferCount)
+      {
+          auto buffer = m_dataStream->AllocAndAnnounceBuffer(static_cast<size_t>(payloadSize), nullptr);
+          m_dataStream->QueueBuffer(buffer);
+      }    
       // start the data stream
       m_dataStream->StartAcquisition(peak::core::AcquisitionStartMode::Default, peak::core::DataStream::INFINITE_NUMBER);
       // start the device
       m_nodeMapRemoteDevice->FindNode<peak::core::nodes::CommandNode>("AcquisitionStart")->Execute();
       ROS_INFO_STREAM("[PEAK_CAM]: " << m_device->ModelName() << " connected");
       acquisitionLoop_running = true;
-    } catch (const std::exception &e) {
+    } catch (const std::exception& e) {
       ROS_ERROR_STREAM_ONCE("[PEAK_CAM]: EXCEPTION: " << e.what());
-      ROS_ERROR_STREAM("[PEAK_CAM]: Device at port " << peak_params.selectedDevice << " not connected or must run as root!");
+      ROS_ERROR_STREAM("[PEAK_CAM]: Device at port " << m_peakParams.selectedDevice << " not connected or must run as root!");
     }
   }
 }
 
 void Peak_Cam::setDeviceParameters()
 {
-    try
+  int maxWidth, maxHeight = 0;
+  maxWidth = m_nodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("WidthMax")->Value();
+  //ROS_INFO_STREAM("[PEAK_CAM]: maxWidth '" << maxWidth << "'");
+  maxHeight = m_nodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("HeightMax")->Value();
+  //ROS_INFO_STREAM("[PEAK_CAM]: maxHeight '" << maxHeight << "'");
+  // Set Width, Height
+  m_nodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("Width")->SetValue(m_peakParams.ImageWidth);
+  ROS_INFO_STREAM("[PEAK_CAM]: ImageWidth is set to '" << m_peakParams.ImageWidth << "'");
+  m_nodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("Height")->SetValue(m_peakParams.ImageHeight);
+  ROS_INFO_STREAM("[PEAK_CAM]: ImageHeight is set to '" << m_peakParams.ImageHeight << "'");
+  m_nodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("OffsetX")->SetValue((maxWidth - m_peakParams.ImageWidth) / 2);
+  m_nodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("OffsetY")->SetValue((maxHeight - m_peakParams.ImageHeight) / 2);
+  //Set GainAuto Parameter
+  m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("GainAuto")->SetCurrentEntry(m_peakParams.GainAuto);
+  ROS_INFO_STREAM("[PEAK_CAM]: GainAuto is set to '" << m_peakParams.GainAuto << "'");
+  //Set GainSelector Parameter
+  m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("GainSelector")->SetCurrentEntry(m_peakParams.GainSelector);
+  ROS_INFO_STREAM("[PEAK_CAM]: GainSelector is set to '" << m_peakParams.GainSelector << "'");
+  //Set ExposureAuto Parameter
+  m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("ExposureAuto")->SetCurrentEntry(m_peakParams.ExposureAuto);
+  ROS_INFO_STREAM("[PEAK_CAM]: ExposureAuto is set to '" << m_peakParams.ExposureAuto << "'");
+
+  //Set ExposureTime Parameter
+  if(m_peakParams.ExposureAuto == "Off")
+  {
+    m_nodeMapRemoteDevice->FindNode<peak::core::nodes::FloatNode>("ExposureTime")->SetValue(m_peakParams.ExposureTime);
+    ROS_INFO_STREAM("[PEAK_CAM]: ExposureTime is set to " << m_peakParams.ExposureTime << " microseconds");
+  }
+  //Set AcquisitionFrameRate Parameter
+  m_nodeMapRemoteDevice->FindNode<peak::core::nodes::FloatNode>("AcquisitionFrameRate")->SetValue(m_peakParams.AcquisitionFrameRate);
+  ROS_INFO_STREAM("[PEAK_CAM]: AcquisitionFrameRate is set to " << m_peakParams.AcquisitionFrameRate << " Hz");
+  //Set Gamma Parameter
+  m_nodeMapRemoteDevice->FindNode<peak::core::nodes::FloatNode>("Gamma")->SetValue(m_peakParams.Gamma);
+  ROS_INFO_STREAM("[PEAK_CAM]: Gamma is set to " << m_peakParams.Gamma);
+  //Set PixelFormat Parameter
+  m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("PixelFormat")->SetCurrentEntry(m_peakParams.PixelFormat);
+  ROS_INFO_STREAM("[PEAK_CAM]: PixelFormat is set to '" << m_peakParams.PixelFormat << "'");
+
+  // Get max width and height of hardware
+  maxWidth = m_nodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("WidthMax")->Value();
+  maxHeight = m_nodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("HeightMax")->Value();
+  
+  // Set Width, Height
+  m_nodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("Width")->SetValue(m_peakParams.ImageWidth);
+  ROS_INFO_STREAM("[PEAK_CAM]: ImageWidth is set to '" << m_peakParams.ImageWidth << "'");
+  m_nodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("Height")->SetValue(m_peakParams.ImageHeight);
+  ROS_INFO_STREAM("[PEAK_CAM]: ImageHeight is set to '" << m_peakParams.ImageHeight << "'");
+  m_nodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("OffsetX")->SetValue((maxWidth - m_peakParams.ImageWidth) / 2);
+  m_nodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("OffsetY")->SetValue((maxHeight - m_peakParams.ImageHeight) / 2);
+  
+  // Set GainAuto Parameter
+  m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("GainAuto")->SetCurrentEntry(m_peakParams.GainAuto);
+  ROS_INFO_STREAM("[PEAK_CAM]: GainAuto is set to '" << m_peakParams.GainAuto << "'");
+  
+  // Set GainSelector Parameter
+  m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("GainSelector")->SetCurrentEntry(m_peakParams.GainSelector);
+  ROS_INFO_STREAM("[PEAK_CAM]: GainSelector is set to '" << m_peakParams.GainSelector << "'");
+  
+  // Set ExposureAuto Parameter
+  m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("ExposureAuto")->SetCurrentEntry(m_peakParams.ExposureAuto);
+  ROS_INFO_STREAM("[PEAK_CAM]: ExposureAuto is set to '" << m_peakParams.ExposureAuto << "'");
+    
+  // Set ExposureTime Parameter
+  if (m_peakParams.ExposureAuto == "Continuous" || m_peakParams.ExposureAuto == "Once") {
+    m_nodeMapRemoteDevice->FindNode<peak::core::nodes::FloatNode>("ExposureTime")->SetValue(1 / (1e-6 * 2 * m_peakParams.AcquisitionFrameRate));
+  } else {
+    m_nodeMapRemoteDevice->FindNode<peak::core::nodes::FloatNode>("ExposureTime")->SetValue(m_peakParams.ExposureTime);
+    ROS_INFO_STREAM("[PEAK_CAM]: ExposureTime is set to " << m_peakParams.ExposureTime << " microseconds");
+  }
+  
+  // Set AcquisitionFrameRate Parameter
+  m_nodeMapRemoteDevice->FindNode<peak::core::nodes::FloatNode>("AcquisitionFrameRate")->SetValue(m_peakParams.AcquisitionFrameRate);
+  ROS_INFO_STREAM("[PEAK_CAM]: AcquisitionFrameRate is set to " << m_peakParams.AcquisitionFrameRate << " Hz");
+  
+  // Set TriggerMode
+  if (m_peakParams.TriggerMode == "On" ) {
+    // TODO(flynneva): add more parameters for customizing trigger
+    // trigger acqusition, delayed trigger, etc.
+     m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("TriggerSelector")
+      ->SetCurrentEntry("ExposureStart");
+     m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("TriggerMode")->SetCurrentEntry("On");
+     m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("TriggerSource")
+      ->SetCurrentEntry("Timer0Active");
+     m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("TriggerActivation")
+      ->SetCurrentEntry("LevelHigh");
+     m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("TimerSelector")
+      ->SetCurrentEntry("Timer0");
+     m_nodeMapRemoteDevice->FindNode<peak::core::nodes::FloatNode>("TimerDuration")->SetValue(500000.0);
+    std::string triggerTypeStart = "Timer0";
+    // set hardline trigger settings
+    std::string lineIn = "Line";
+    lineIn.push_back(m_peakParams.TriggerSource);  // GPIO pin number
+
+    // already including some future logic for other trigger types
+    if (triggerTypeStart == "Counter0")
     {
-        int maxWidth, maxHeight = 0;
-
-        maxWidth = m_nodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("WidthMax")->Value();
-        //ROS_INFO_STREAM("[PEAK_CAM]: maxWidth '" << maxWidth << "'");
-        maxHeight = m_nodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("HeightMax")->Value();
-        //ROS_INFO_STREAM("[PEAK_CAM]: maxHeight '" << maxHeight << "'");
-        // Set Width, Height
-        m_nodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("Width")->SetValue(peak_params.ImageWidth);
-        ROS_INFO_STREAM("[PEAK_CAM]: ImageWidth is set to '" << peak_params.ImageWidth << "'");
-        m_nodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("Height")->SetValue(peak_params.ImageHeight);
-        ROS_INFO_STREAM("[PEAK_CAM]: ImageHeight is set to '" << peak_params.ImageHeight << "'");
-        m_nodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("OffsetX")->SetValue((maxWidth - peak_params.ImageWidth) / 2);
-        m_nodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("OffsetY")->SetValue((maxHeight - peak_params.ImageHeight) / 2);
-	
-        //Set GainAuto Parameter
-        m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("GainAuto")->SetCurrentEntry(peak_params.GainAuto);
-        ROS_INFO_STREAM("[PEAK_CAM]: GainAuto is set to '" << peak_params.GainAuto << "'");
-
-        //Set GainSelector Parameter
-        m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("GainSelector")->SetCurrentEntry(peak_params.GainSelector);
-        ROS_INFO_STREAM("[PEAK_CAM]: GainSelector is set to '" << peak_params.GainSelector << "'");
-
-        //Set ExposureAuto Parameter
-        m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("ExposureAuto")->SetCurrentEntry(peak_params.ExposureAuto);
-        ROS_INFO_STREAM("[PEAK_CAM]: ExposureAuto is set to '" << peak_params.ExposureAuto << "'");
-
-
-        //Set ExposureTime Parameter
-        if(peak_params.ExposureAuto == "Off")
-        {
-            m_nodeMapRemoteDevice->FindNode<peak::core::nodes::FloatNode>("ExposureTime")->SetValue(peak_params.ExposureTime);
-            ROS_INFO_STREAM("[PEAK_CAM]: ExposureTime is set to " << peak_params.ExposureTime << " microseconds");
-        }
-
-        //Set AcquisitionFrameRate Parameter
-        m_nodeMapRemoteDevice->FindNode<peak::core::nodes::FloatNode>("AcquisitionFrameRate")->SetValue(peak_params.AcquisitionFrameRate);
-        ROS_INFO_STREAM("[PEAK_CAM]: AcquisitionFrameRate is set to " << peak_params.AcquisitionFrameRate << " Hz");
-
-        //Set Gamma Parameter
-        m_nodeMapRemoteDevice->FindNode<peak::core::nodes::FloatNode>("Gamma")->SetValue(peak_params.Gamma);
-        ROS_INFO_STREAM("[PEAK_CAM]: Gamma is set to " << peak_params.Gamma);
-
-        //Set PixelFormat Parameter
-        m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("PixelFormat")->SetCurrentEntry(peak_params.PixelFormat);
-        ROS_INFO_STREAM("[PEAK_CAM]: PixelFormat is set to '" << peak_params.PixelFormat << "'");
-
-    // Get max width and height of hardware
-    maxWidth = m_nodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("WidthMax")->Value();
-    maxHeight = m_nodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("HeightMax")->Value();
-    
-    // Set Width, Height
-    m_nodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("Width")->SetValue(peak_params.ImageWidth);
-    ROS_INFO_STREAM("[PEAK_CAM]: ImageWidth is set to '" << peak_params.ImageWidth << "'");
-    m_nodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("Height")->SetValue(peak_params.ImageHeight);
-    ROS_INFO_STREAM("[PEAK_CAM]: ImageHeight is set to '" << peak_params.ImageHeight << "'");
-    m_nodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("OffsetX")->SetValue((maxWidth - peak_params.ImageWidth) / 2);
-    m_nodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("OffsetY")->SetValue((maxHeight - peak_params.ImageHeight) / 2);
-    
-    // Set GainAuto Parameter
-    m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("GainAuto")->SetCurrentEntry(peak_params.GainAuto);
-    ROS_INFO_STREAM("[PEAK_CAM]: GainAuto is set to '" << peak_params.GainAuto << "'");
-    
-    // Set GainSelector Parameter
-    m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("GainSelector")->SetCurrentEntry(peak_params.GainSelector);
-    ROS_INFO_STREAM("[PEAK_CAM]: GainSelector is set to '" << peak_params.GainSelector << "'");
-    
-    // Set ExposureAuto Parameter
-    m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("ExposureAuto")->SetCurrentEntry(peak_params.ExposureAuto);
-    ROS_INFO_STREAM("[PEAK_CAM]: ExposureAuto is set to '" << peak_params.ExposureAuto << "'");
-    
-    // Set ExposureTime Parameter
-    if (peak_params.ExposureAuto == "Continuous" || peak_params.ExposureAuto == "Once") {
-      m_nodeMapRemoteDevice->FindNode<peak::core::nodes::FloatNode>("ExposureTime")->SetValue(1 / (1e-6 * 2 * peak_params.AcquisitionFrameRate));
-    } else {
-      m_nodeMapRemoteDevice->FindNode<peak::core::nodes::FloatNode>("ExposureTime")->SetValue(peak_params.ExposureTime);
-      ROS_INFO_STREAM("[PEAK_CAM]: ExposureTime is set to " << peak_params.ExposureTime << " microseconds");
+      m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("CounterSelector")
+       ->SetCurrentEntry("Counter0");
+      m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("CounterTriggerSource")
+       ->SetCurrentEntry(lineIn);
+      m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("CounterTriggerActivation")
+       ->SetCurrentEntry("RisingEdge");
     }
-    
-    // Set AcquisitionFrameRate Parameter
-    m_nodeMapRemoteDevice->FindNode<peak::core::nodes::FloatNode>("AcquisitionFrameRate")->SetValue(peak_params.AcquisitionFrameRate);
-    ROS_INFO_STREAM("[PEAK_CAM]: AcquisitionFrameRate is set to " << peak_params.AcquisitionFrameRate << " Hz");
-    
-    // Set TriggerMode
-    if (peak_params.TriggerMode == "On" ) {
-      // TODO(flynneva): add more parameters for customizing trigger
-      // trigger acqusition, delayed trigger, etc.
-       m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("TriggerSelector")
-        ->SetCurrentEntry("ExposureStart");
-       m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("TriggerMode")->SetCurrentEntry("On");
-       m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("TriggerSource")
-        ->SetCurrentEntry("Timer0Active");
-       m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("TriggerActivation")
-        ->SetCurrentEntry("LevelHigh");
-       m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("TimerSelector")
-        ->SetCurrentEntry("Timer0");
-       m_nodeMapRemoteDevice->FindNode<peak::core::nodes::FloatNode>("TimerDuration")->SetValue(500000.0);
-      std::string triggerTypeStart = "Timer0";
-
-      // set hardline trigger settings
-      std::string lineIn = "Line";
-      lineIn.push_back(peak_params.TriggerSource);  // GPIO pin number
-
-      // already including some future logic for other trigger types
-      if (triggerTypeStart == "Counter0")
-      {
-         m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("CounterSelector")
-          ->SetCurrentEntry("Counter0");
-         m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("CounterTriggerSource")
-          ->SetCurrentEntry(lineIn);
-         m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("CounterTriggerActivation")
-          ->SetCurrentEntry("RisingEdge");
-      }
-      else if (triggerTypeStart == "Timer0")
-      {
-         m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("TimerSelector")
-          ->SetCurrentEntry("Timer0");
-         m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("TimerTriggerSource")
-          ->SetCurrentEntry(lineIn);
-         m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("TimerTriggerActivation")
-          ->SetCurrentEntry("RisingEdge");
-      }
-      else
-      {
-         m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("TriggerSelector")
-          ->SetCurrentEntry(triggerTypeStart);
-         m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("TriggerSource")
-          ->SetCurrentEntry(lineIn);
-         m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("TriggerActivation")
-          ->SetCurrentEntry("RisingEdge");
-      }
+    else if (triggerTypeStart == "Timer0")
+    {
+      m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("TimerSelector")
+       ->SetCurrentEntry("Timer0");
+      m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("TimerTriggerSource")
+       ->SetCurrentEntry(lineIn);
+      m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("TimerTriggerActivation")
+       ->SetCurrentEntry("RisingEdge");
     }
-    
-    // Set Gamma Parameter
-    m_nodeMapRemoteDevice->FindNode<peak::core::nodes::FloatNode>("Gamma")->SetValue(peak_params.Gamma);
-    ROS_INFO_STREAM("[PEAK_CAM]: Gamma is set to " << peak_params.Gamma);
-    
-    // Set PixelFormat Parameter
-    m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("PixelFormat")->SetCurrentEntry(peak_params.PixelFormat);
-    ROS_INFO_STREAM("[PEAK_CAM]: PixelFormat is set to '" << peak_params.PixelFormat << "'");
-    
-    // Set Parameters for ROS Image
-    if (peak_params.PixelFormat == "Mono8") {
-      m_pixel_format = peak::ipl::PixelFormatName::Mono8;
-      m_image.encoding = sensor_msgs::image_encodings::MONO8;
-      m_bytes_per_pixel = 1;
-    } else if (peak_params.PixelFormat == "RGB8") {
-      m_pixel_format = peak::ipl::PixelFormatName::RGB8;
-      image_for_encoding.encoding = sensor_msgs::image_encodings::RGB8;
-      m_bytes_per_pixel = 1;
-    } else if (peak_params.PixelFormat == "BGR8") {
-      m_pixel_format = peak::ipl::PixelFormatName::BGR8;
-      m_image.encoding = sensor_msgs::image_encodings::BGR8;
-      m_bytes_per_pixel = 1;
+    else
+    {
+      m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("TriggerSelector")
+       ->SetCurrentEntry(triggerTypeStart);
+      m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("TriggerSource")
+       ->SetCurrentEntry(lineIn);
+      m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("TriggerActivation")
+       ->SetCurrentEntry("RisingEdge");
     }
-  } catch (const std::exception &e) {
-    ROS_ERROR_STREAM("[PEAK_CAM]: EXCEPTION: " << e.what());
-    ROS_ERROR("[PEAK_CAM]: Could not set all Parameters");
+  }
+    
+  // Set Gamma Parameter
+  m_nodeMapRemoteDevice->FindNode<peak::core::nodes::FloatNode>("Gamma")->SetValue(m_peakParams.Gamma);
+  ROS_INFO_STREAM("[PEAK_CAM]: Gamma is set to " << m_peakParams.Gamma);
+  
+  // Set PixelFormat Parameter
+  m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("PixelFormat")->SetCurrentEntry(m_peakParams.PixelFormat);
+  ROS_INFO_STREAM("[PEAK_CAM]: PixelFormat is set to '" << m_peakParams.PixelFormat << "'");
+  
+  // Set Parameters for ROS Image
+  if (m_peakParams.PixelFormat == "Mono8") {
+    m_pixelFormat = peak::ipl::PixelFormatName::Mono8;
+    m_image.encoding = sensor_msgs::image_encodings::MONO8;
+    m_bytesPerPixel = 1;
+  } else if (m_peakParams.PixelFormat == "RGB8") {
+    m_pixelFormat = peak::ipl::PixelFormatName::RGB8;
+    m_image.encoding = sensor_msgs::image_encodings::RGB8;
+    m_bytesPerPixel = 1;
+  } else if (m_peakParams.PixelFormat == "BGR8") {
+    m_pixelFormat = peak::ipl::PixelFormatName::BGR8;
+    m_image.encoding = sensor_msgs::image_encodings::BGR8;
+    m_bytesPerPixel = 1;
   }
 }
+
 void Peak_Cam::acquisitionLoop()
 {
   while (acquisitionLoop_running) {
@@ -361,11 +296,11 @@ void Peak_Cam::acquisitionLoop()
       // get buffer from data stream and process it
       auto buffer = m_dataStream->WaitForFinishedBuffer(5000);
 
-      const auto imageBufferSize = peak_params.ImageWidth * peak_params.ImageHeight * m_bytes_per_pixel;
+      const auto imageBufferSize = m_peakParams.ImageWidth * m_peakParams.ImageHeight * m_bytesPerPixel;
       // buffer processing start
-      auto image = peak::BufferTo<peak::ipl::Image>(buffer).ConvertTo(m_pixel_format);
+      auto image = peak::BufferTo<peak::ipl::Image>(buffer).ConvertTo(m_pixelFormat);
       cv::Mat cvImage;
-      if (peak_params.PixelFormat == "Mono8")
+      if (m_peakParams.PixelFormat == "Mono8")
         cvImage = cv::Mat::zeros(image.Height(), image.Width(), CV_8UC1);
       else
         cvImage = cv::Mat::zeros(image.Height(), image.Width(), CV_8UC3);
@@ -375,10 +310,10 @@ void Peak_Cam::acquisitionLoop()
       // cv_bridge Image is converted to sensor_msgs/Image to publish on ROS Topic
       cv_bridge::CvImage cvBridgeImage;
       cvBridgeImage.header.stamp = ros::Time::now();
-      cvBridgeImage.header.frame_id = peak_params.selectedDevice;
-      cvBridgeImage.encoding = image_for_encoding.encoding;
+      cvBridgeImage.header.frame_id = m_peakParams.selectedDevice;
+      cvBridgeImage.encoding = m_image.encoding;
       cvBridgeImage.image = cvImage;
-      image_publisher.publish(cvBridgeImage.toImageMsg());
+      m_imagePublisher.publish(cvBridgeImage.toImageMsg());
       ROS_INFO_STREAM_ONCE("[PEAK_CAM]: Publishing data");
       // queue buffer
       m_dataStream->QueueBuffer(buffer);
@@ -390,6 +325,7 @@ void Peak_Cam::acquisitionLoop()
     }
   }
 }
+
 void Peak_Cam::closeDevice()
 {
   // if device was opened, try to stop acquisition
@@ -418,19 +354,20 @@ void Peak_Cam::closeDevice()
     }
   }
 }
+
 void Peak_Cam::reconfigureRequest(const Config &config, uint32_t level)
 {
-  peak_params.ExposureTime = config.ExposureTime;
-  peak_params.AcquisitionFrameRate = config.AcquisitionFrameRate;
-  peak_params.Gamma = config.Gamma;
-  peak_params.selectedDevice = config.selectedDevice;
-  peak_params.GainAuto = config.GainAuto;
-  peak_params.GainSelector = config.GainSelector;
-  peak_params.ExposureAuto = config.ExposureAuto;
-  peak_params.PixelFormat = config.PixelFormat;
-  peak_params.ImageHeight = config.ImageHeight;
-  peak_params.ImageWidth = config.ImageWidth;
-  peak_params.TriggerMode = config.TriggerMode;
+  m_peakParams.ExposureTime = config.ExposureTime;
+  m_peakParams.AcquisitionFrameRate = config.AcquisitionFrameRate;
+  m_peakParams.Gamma = config.Gamma;
+  m_peakParams.selectedDevice = config.selectedDevice;
+  m_peakParams.GainAuto = config.GainAuto;
+  m_peakParams.GainSelector = config.GainSelector;
+  m_peakParams.ExposureAuto = config.ExposureAuto;
+  m_peakParams.PixelFormat = config.PixelFormat;
+  m_peakParams.ImageHeight = config.ImageHeight;
+  m_peakParams.ImageWidth = config.ImageWidth;
+  m_peakParams.TriggerMode = config.TriggerMode;
 }
 
 } // namespace peak_cam
