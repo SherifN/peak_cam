@@ -36,7 +36,6 @@
 #ifndef PEAK_CAM__ACQUISITION_PARAMETERS_HPP_
 #define PEAK_CAM__ACQUISITION_PARAMETERS_HPP_
 
-
 #include <peak_ipl/peak_ipl.hpp>
 #include <sensor_msgs/image_encodings.h>
 #include <sensor_msgs/Image.h>

@@ -33,8 +33,8 @@
 // CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE 
 // POSSIBILITY OF SUCH DAMAGE. 
-#ifndef PEAK_CAM__PEAK_CAM_HPP_
-#define PEAK_CAM__PEAK_CAM_HPP_
+#ifndef PEAK_CAM__PEAK_CAM_NODE_HPP_
+#define PEAK_CAM__PEAK_CAM_NODE_HPP_
 
 #include <iostream>
 #include <atomic>
@@ -45,6 +45,7 @@
 #include <sensor_msgs/Image.h>
 #include <sensor_msgs/image_encodings.h>
 #include <dynamic_reconfigure/server.h>
+#include <nodelet/nodelet.h>
 
 //OpenCV Headers
 #include <opencv2/opencv.hpp>
@@ -60,22 +61,25 @@
 
 //Parameters
 #include "peak_cam/acquisition_parameters.hpp"
-
 #include "peak_cam/PeakCamConfig.h"
 
 
 namespace peak_cam
 {
 
-class Peak_Cam
+class PeakCamNode : public nodelet::Nodelet
 {
-    using Config = PeakCamConfig;
-    using ReconfigureServer = dynamic_reconfigure::Server<Config>;
-
 public:
-    Peak_Cam(ros::NodeHandle nh);
-    ~Peak_Cam();
+    PeakCamNode();
+    ~PeakCamNode();
     
+    ///
+    /// Initialize Nodelet member variables
+    ///
+    /// @return void
+    ///
+    void onInit();
+
     // acquisitionLoop function and bool are public to run on particular thread
     void acquisitionLoop();
     
@@ -87,8 +91,8 @@ private:
 
     ros::Publisher m_imagePublisher;
 
-    dynamic_reconfigure::Server<Config> m_paramsServer;
-    dynamic_reconfigure::Server<Config>::CallbackType m_handleParams;
+    dynamic_reconfigure::Server<PeakCamConfig> m_paramsServer;
+    dynamic_reconfigure::Server<PeakCamConfig>::CallbackType m_handleParams;
 
     std::shared_ptr<peak::core::DataStream> m_dataStream;
     std::shared_ptr<peak::core::Device> m_device;
@@ -101,7 +105,7 @@ private:
 
     uint8_t m_bytesPerPixel;
 
-    void reconfigureRequest(const Config &, uint32_t);
+    void reconfigureRequest(const PeakCamConfig &, uint32_t);
     void openDevice();
     void setDeviceParameters();
     void closeDevice();
@@ -109,4 +113,4 @@ private:
 
 } // namespace peak_cam
 
-#endif  // PEAK_CAM__ACQUISITION_PARAMETERS_HPP_
+#endif  // PEAK_CAM__PEAK_CAM_NODE_HPP_

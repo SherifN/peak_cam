@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8.3)
+cmake_minimum_required(VERSION 3.5.1)
 project(peak_cam)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
@@ -17,21 +17,26 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   sensor_msgs
   std_msgs
+  nodelet
 )
 
 find_package(Boost REQUIRED COMPONENTS system)
 
 generate_dynamic_reconfigure_options(
    cfg/PeakCam.cfg
- )
+)
 
-catkin_package(CATKIN_DEPENDS
+catkin_package(
+  INCLUDE_DIRS include
+  LIBRARIES
+  CATKIN_DEPENDS
   cv_bridge
   dynamic_reconfigure
   image_transport
   roscpp
   sensor_msgs
   std_msgs
+  nodelet
 )
 
 # samples for ids peak library are usually installed to /usr/local/src/ids/samples/peak
@@ -42,29 +47,23 @@ include_directories(
   ${IDS_PEAK_IPL_INCLUDE_DIR}
 )
 
-add_executable(${PROJECT_NAME}_node
+add_library(${PROJECT_NAME}
   src/peak_cam_node.cpp
-  src/peak_cam.cpp 
 )
 
-target_link_libraries(${PROJECT_NAME}_node
+add_dependencies(${PROJECT_NAME}
+  ${PROJECT_NAME}_gencfg
+  ${catkin_EXPORTED_TARGETS}
+)
+
+target_link_libraries(${PROJECT_NAME}
   ${catkin_LIBRARIES}
   ${IDS_PEAK_LIBRARIES}
   ${IDS_PEAK_IPL_LIBRARIES}
 )
 
-install(TARGETS
-  ${PROJECT_NAME}_node
-  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-)
-
-## Add folders to be run by python nosetests
-# catkin_add_nosetests(test)
-
-install(TARGETS
-  ${PROJECT_NAME}_node
+install(
+  TARGETS ${PROJECT_NAME}
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
@@ -76,4 +75,10 @@ install(DIRECTORY include/
 
 install(DIRECTORY
   launch
-  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+)
+
+install(FILES
+  nodelets.xml
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+)

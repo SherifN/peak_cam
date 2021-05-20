@@ -1,0 +1,9 @@
+<library path="lib/libpeak_cam">
+	<class name="peak_cam/PeakCamNode"
+	       type="peak_cam::PeakCamNode"
+           base_class_type="nodelet::Nodelet">
+        <description>
+		    ROS driver for IDS Peak cameras
+	    </description>
+  	</class>
+</library>
