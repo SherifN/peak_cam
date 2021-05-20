@@ -35,8 +35,6 @@
 // POSSIBILITY OF SUCH DAMAGE.
 #include "peak_cam/peak_cam_node.hpp"
 
-#include <pluginlib/class_list_macros.h>
-
 namespace peak_cam
 {
 
@@ -383,4 +381,5 @@ void PeakCamNode::reconfigureRequest(const PeakCamConfig &config, uint32_t level
 
 } // namespace peak_cam
 
+#include <pluginlib/class_list_macros.h>  // NOLINT
 PLUGINLIB_EXPORT_CLASS(peak_cam::PeakCamNode, nodelet::Nodelet)
