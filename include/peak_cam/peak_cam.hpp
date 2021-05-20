@@ -33,31 +33,80 @@
 // CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE 
 // POSSIBILITY OF SUCH DAMAGE. 
+#ifndef PEAK_CAM__PEAK_CAM_HPP_
+#define PEAK_CAM__PEAK_CAM_HPP_
 
+#include <iostream>
+#include <atomic>
 
-
-#include <peak_ipl/peak_ipl.hpp>
-#include <sensor_msgs/image_encodings.h>
+//ROS Headers
+#include <ros/ros.h>
+#include <std_msgs/Float64.h>
 #include <sensor_msgs/Image.h>
+#include <sensor_msgs/image_encodings.h>
+#include <dynamic_reconfigure/server.h>
+
+//OpenCV Headers
+#include <opencv2/opencv.hpp>
+#include <cv_bridge/cv_bridge.h>
+#include "opencv2/imgproc/imgproc.hpp"
+#include "opencv2/highgui/highgui.hpp"
+#include <cv_bridge/cv_bridge.h>
+
+//IDS Camera Headers
+#include <peak_ipl/peak_ipl.hpp>
+#include <peak/converters/peak_buffer_converter_ipl.hpp>
+#include <peak/peak.hpp>
+
+//Parameters
+#include "peak_cam/acquisition_parameters.hpp"
+
+#include "peak_cam/PeakCamConfig.h"
 
 
 namespace peak_cam
 {
 
-struct Peak_Params
+class Peak_Cam
 {
-    std::string selectedDevice{"000000"}; // default to all 0's
-    int ExposureTime{100};
-    int AcquisitionFrameRate{1};
-    int ImageHeight{480};
-    int ImageWidth{640};
-    double Gamma{1.2};
-    std::string ExposureAuto{"Off"};
-    std::string GainAuto{"Off"};
-    std::string GainSelector;
-    std::string PixelFormat;
-    std::string TriggerMode{"Off"};
-    int TriggerSource{0};
+    using Config = PeakCamConfig;
+    using ReconfigureServer = dynamic_reconfigure::Server<Config>;
+
+public:
+    Peak_Cam(ros::NodeHandle nh);
+    ~Peak_Cam();
+    
+    // acquisitionLoop function and bool are public to run on particular thread
+    void acquisitionLoop();
+    
+    // Preventing two threads to acces variable acquisitionLoop_running
+    std::atomic<bool> acquisitionLoop_running{false};
+
+private:
+    ros::NodeHandle m_node_handle;
+
+    ros::Publisher m_image_publisher;
+
+    dynamic_reconfigure::Server<Config> m_server;
+    dynamic_reconfigure::Server<Config>::CallbackType m_f;
+
+    std::shared_ptr<peak::core::DataStream> m_dataStream;
+    std::shared_ptr<peak::core::Device> m_device;
+    std::shared_ptr<peak::core::NodeMap> m_nodeMapRemoteDevice;
+    peak::ipl::PixelFormatName m_pixel_format;
+    sensor_msgs::Image m_image;
+
+    // Camera Parameters
+    Peak_Params m_peak_params;
+
+    uint8_t m_bytes_per_pixel;
+
+    void reconfigureRequest(const Config &, uint32_t);
+    void openDevice();
+    void setDeviceParameters();
+    void closeDevice();
 };
 
-}
+} // namespace peak_cam
+
+#endif  // PEAK_CAM__ACQUISITION_PARAMETERS_HPP_

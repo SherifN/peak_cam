@@ -34,17 +34,17 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#include "peak_cam.hpp"
+#include "peak_cam/peak_cam.hpp"
 
 namespace peak_cam
 {
-Peak_Cam::Peak_Cam(ros::NodeHandle nh) : nh_private(nh)
+Peak_Cam::Peak_Cam(ros::NodeHandle nh) : m_node_handle(nh)
 {
   std::string camera_topic;
-  nh_private.getParam("camera_topic", camera_topic);
+  m_node_handle.getParam("camera_topic", camera_topic);
   ROS_INFO("Setting parameters to:");
   ROS_INFO("  camera_topic: %s", camera_topic.c_str());
-  image_publisher = nh.advertise<sensor_msgs::Image>(camera_topic, 1);
+  m_image_publisher = nh.advertise<sensor_msgs::Image>(camera_topic, 1);
   f = boost::bind(&Peak_Cam::reconfigureRequest, this, _1, _2);
   server.setCallback(f);
   peak::Library::Initialize();
@@ -336,14 +336,17 @@ void Peak_Cam::setDeviceParameters()
     
     // Set Parameters for ROS Image
     if (peak_params.PixelFormat == "Mono8") {
-      pixel_format_name = peak::ipl::PixelFormatName::Mono8;
-      image_for_encoding.encoding = sensor_msgs::image_encodings::MONO8;
+      m_pixel_format = peak::ipl::PixelFormatName::Mono8;
+      m_image.encoding = sensor_msgs::image_encodings::MONO8;
+      m_bytes_per_pixel = 1;
     } else if (peak_params.PixelFormat == "RGB8") {
-      pixel_format_name = peak::ipl::PixelFormatName::RGB8;
+      m_pixel_format = peak::ipl::PixelFormatName::RGB8;
       image_for_encoding.encoding = sensor_msgs::image_encodings::RGB8;
+      m_bytes_per_pixel = 1;
     } else if (peak_params.PixelFormat == "BGR8") {
-      pixel_format_name = peak::ipl::PixelFormatName::BGR8;
-      image_for_encoding.encoding = sensor_msgs::image_encodings::BGR8;
+      m_pixel_format = peak::ipl::PixelFormatName::BGR8;
+      m_image.encoding = sensor_msgs::image_encodings::BGR8;
+      m_bytes_per_pixel = 1;
     }
   } catch (const std::exception &e) {
     ROS_ERROR_STREAM("[PEAK_CAM]: EXCEPTION: " << e.what());
@@ -357,8 +360,10 @@ void Peak_Cam::acquisitionLoop()
       ROS_INFO_ONCE("[PEAK_CAM]: Acquisition started");
       // get buffer from data stream and process it
       auto buffer = m_dataStream->WaitForFinishedBuffer(5000);
+
+      const auto imageBufferSize = peak_params.ImageWidth * peak_params.ImageHeight * m_bytes_per_pixel;
       // buffer processing start
-      auto image = peak::BufferTo<peak::ipl::Image>(buffer).ConvertTo(pixel_format_name);
+      auto image = peak::BufferTo<peak::ipl::Image>(buffer).ConvertTo(m_pixel_format);
       cv::Mat cvImage;
       if (peak_params.PixelFormat == "Mono8")
         cvImage = cv::Mat::zeros(image.Height(), image.Width(), CV_8UC1);
