@@ -4,7 +4,9 @@
   <arg name="config" default="$(find peak_cam)/launch/params/peak_cam_params.yaml" />
 
   <!-- Nodelet Manager -->
-  <node pkg="nodelet" type="nodelet" name="$(arg manager_name)" args="manager" output="screen" />
+  <node pkg="nodelet" type="nodelet" name="$(arg manager_name)" args="manager" output="screen">
+    <param name="num_worker_threads" value="2" />
+  </node>
 
   <node pkg="nodelet" type="nodelet" name="$(arg node_name)" args="load peak_cam/PeakCamNode $(arg manager_name)" output="screen">
     <rosparam command="load" file="$(arg config)"/>

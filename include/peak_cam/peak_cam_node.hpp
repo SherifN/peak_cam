@@ -81,17 +81,20 @@ public:
     void onInit();
 
     // acquisitionLoop function and bool are public to run on particular thread
-    void acquisitionLoop();
+    void acquisitionLoop(const ros::TimerEvent & event);
     
-    // Preventing two threads to acces variable acquisitionLoop_running
-    std::atomic<bool> acquisitionLoop_running{false};
+    // Preventing two threads to acces variable acquisitionLoopRunning
+    std::atomic<bool> m_acquisitionLoopRunning{false};
 
 private:
     ros::NodeHandle m_nodeHandle;
+    ros::NodeHandle m_nodeHandleMT;
 
     ros::Publisher m_imagePublisher;
 
-    dynamic_reconfigure::Server<PeakCamConfig> m_paramsServer;
+    ros::Timer m_acquisitionTimer;
+ 
+    std::shared_ptr<dynamic_reconfigure::Server<PeakCamConfig> > m_paramsServer;
     dynamic_reconfigure::Server<PeakCamConfig>::CallbackType m_handleParams;
 
     std::shared_ptr<peak::core::DataStream> m_dataStream;
