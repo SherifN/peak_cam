@@ -51,6 +51,9 @@ struct Peak_Params
   int AcquisitionFrameRate{1};
   int ImageHeight{480};
   int ImageWidth{640};
+  bool UseOffset{false};
+  int OffsetWidth{0};
+  int OffsetHeight{0};
   double Gamma{1.2};
   std::string ExposureAuto{"Off"};
   std::string GainAuto{"Off"};
