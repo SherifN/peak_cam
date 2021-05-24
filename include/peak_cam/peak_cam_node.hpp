@@ -40,8 +40,10 @@
 #include <atomic>
 
 //ROS Headers
+#include "camera_info_manager/camera_info_manager.h"
 #include <ros/ros.h>
 #include <std_msgs/Float64.h>
+#include <sensor_msgs/CameraInfo.h>
 #include <sensor_msgs/Image.h>
 #include <sensor_msgs/image_encodings.h>
 #include <dynamic_reconfigure/server.h>
@@ -70,48 +72,49 @@ namespace peak_cam
 class PeakCamNode : public nodelet::Nodelet
 {
 public:
-    PeakCamNode();
-    ~PeakCamNode();
-    
-    ///
-    /// Initialize Nodelet member variables
-    ///
-    /// @return void
-    ///
-    void onInit();
-
-    // acquisitionLoop function and bool are public to run on particular thread
-    void acquisitionLoop(const ros::TimerEvent & event);
-    
-    // Preventing two threads to acces variable acquisitionLoopRunning
-    std::atomic<bool> m_acquisitionLoopRunning{false};
+  PeakCamNode();
+  ~PeakCamNode();
+  
+  ///
+  /// Initialize Nodelet member variables
+  ///
+  /// @return void
+  ///
+  void onInit();
+  // acquisitionLoop function and bool are public to run on particular thread
+  void acquisitionLoop(const ros::TimerEvent & event);
+  
+  // Preventing two threads to acces variable acquisitionLoopRunning
+  std::atomic<bool> m_acquisitionLoopRunning{false};
 
 private:
-    ros::NodeHandle m_nodeHandle;
-    ros::NodeHandle m_nodeHandleMT;
+  ros::NodeHandle m_nodeHandle;
+  ros::NodeHandle m_nodeHandleMT;
+  ros::Publisher m_pubImage, m_pubCameraInfo;
 
-    ros::Publisher m_imagePublisher;
+  /// Camera Info Manager
+  camera_info_manager::CameraInfoManager *m_cameraInfoManager;
 
-    ros::Timer m_acquisitionTimer;
- 
-    std::shared_ptr<dynamic_reconfigure::Server<PeakCamConfig> > m_paramsServer;
-    dynamic_reconfigure::Server<PeakCamConfig>::CallbackType m_handleParams;
+  ros::Timer m_acquisitionTimer;
 
-    std::shared_ptr<peak::core::DataStream> m_dataStream;
-    std::shared_ptr<peak::core::Device> m_device;
-    std::shared_ptr<peak::core::NodeMap> m_nodeMapRemoteDevice;
-    peak::ipl::PixelFormatName m_pixelFormat;
-    sensor_msgs::Image m_image;
+  std::shared_ptr<dynamic_reconfigure::Server<PeakCamConfig> > m_paramsServer;
+  dynamic_reconfigure::Server<PeakCamConfig>::CallbackType m_handleParams;
+  std::shared_ptr<peak::core::DataStream> m_dataStream;
+  std::shared_ptr<peak::core::Device> m_device;
+  std::shared_ptr<peak::core::NodeMap> m_nodeMapRemoteDevice;
+  peak::ipl::PixelFormatName m_pixelFormat;
+  
+  std::shared_ptr<sensor_msgs::Image> m_image;
 
-    // Camera Parameters
-    Peak_Params m_peakParams;
+  // Camera Parameters
+  Peak_Params m_peakParams;
 
-    uint8_t m_bytesPerPixel;
+  uint8_t m_bytesPerPixel;
 
-    void reconfigureRequest(const PeakCamConfig &, uint32_t);
-    void openDevice();
-    void setDeviceParameters();
-    void closeDevice();
+  void reconfigureRequest(const PeakCamConfig &, uint32_t);
+  void openDevice();
+  void setDeviceParameters();
+  void closeDevice();
 };
 
 } // namespace peak_cam

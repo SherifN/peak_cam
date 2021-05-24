@@ -1,0 +1,76 @@
+
+# In this parameter file you can change acquisition settings of the camera. 
+# Before that, you should try to open the camera with the ids_visioncockpit for an approximate setting
+
+# To add more parameters to your camera please view the IDS Vision Reference at 
+# https://de.ids-imaging.com/manuals-ids-peak.html 
+# and modify acquisition_parameters.hpp and setDeviceParameters() function in peak_cam class
+
+frame_id: "peak_cam"
+camera_topic: image_raw
+
+
+# choose which device to enter by entering its serial number here
+# if you dont know it, run this node once and all serial nodes should be printed out
+selectedDevice: "0000000000"
+
+# configure your desired image size
+# needs to be divisble by 8 and smaller than your imager size (Max Width, Max Height)
+ImageHeight: 320
+ImageWidth: 1088
+
+# Pixelformat
+# In IDS Implemented: ["Mono8", "Mono10", "Mono12", "Mono10p", "Mono12p", "BayerRG8", "BayerRG10", "BayerRG12", "BayerRG10p", "BayerRG12p", "RGB8", "RGB10p32", "BGR8", "BGR10p32"]
+# Possible: ["Mono8", "RGB8", "BGR8"] as string! 
+PixelFormat: "RGB8"
+
+# DeviceLinkThroughputLimit
+# limits the maximum bandwidth of data sent from a GigE camera and thus helps to avoid interference
+# WATCH OUT when DeviceLinkThroughputLimit is too low there might be some latency and buffer overflows
+DeviceLinkThroughputLimit: 125000000
+
+# ExposureTime in μs
+# limits the Acquisition Framerate
+# When ExposureAuto is set to "Once" or "Continuous" the value won't be used
+ExposureTime: 5000
+
+# Signal source for Line1 (flash output)
+# Possible: ["Off", "ExposureActive", ...]
+Line1Source: "ExposureActive"
+
+# Trigger Source used to start exposure
+# Autmatically sets TriggerSelector to "ExposureStart" and TriggerMode to "On"
+# Possible: ["Off", "Line0", ...]
+TriggerSource: "Off"
+
+# Trigger activation mode
+# When TriggerSource is set to "Off" the value won't be used
+# Possible: ["RisingEdge", "FallingEdge", "AnyEdge", "LevelHigh", "LevelLow"]
+TriggerActivation: "RisingEdge"
+
+# Trigger divider
+# Only every x-th source signal will activate the trigger
+# Range [0, ..., 64]
+TriggerDivider: 1
+
+# AcquisitionFrameRate in Hz
+# WATCH OUT when AcquisitionFrameRate is too high there might be some latency. Check "rostopic hz /cameratopic"
+AcquisitionFrameRate: 10
+
+# Gamma
+# Range [0.3, ..., 3.0]
+# If no Gamma correction ist needed set to 1.0
+Gamma: 1.0
+
+# ExposureAuto Setting 
+# If ExposureAuto On set ExposureTime to any value ExposureTime [sek] < 1 / AcquisitionFrameRate [sek]
+# Possible: ["Off", "Once", "Continuous"] as string! 
+ExposureAuto: "Continuous"
+
+# GainAuto Setting 
+# Possible: ["Off", "Once", "Continuous"] as string! 
+GainAuto: "Continuous"
+
+# GainSelector Setting 
+# Possible: ["AnalogAllSource", "AnalogAll", "AnalogRed", "AnalogGreen", "AnalogBlue", "DigitalAll", "DigitalRed", "DigitalGreen", "DigitalBlue"] as string! 
+GainSelector: "DigitalAll"

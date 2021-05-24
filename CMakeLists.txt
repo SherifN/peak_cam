@@ -11,6 +11,7 @@ find_package(ids_peak REQUIRED)
 find_package(ids_peak_ipl REQUIRED)
 
 find_package(catkin REQUIRED COMPONENTS
+  camera_info_manager
   cv_bridge
   dynamic_reconfigure
   image_transport
@@ -30,6 +31,7 @@ catkin_package(
   INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/include
   LIBRARIES
   CATKIN_DEPENDS
+  camera_info_manager
   cv_bridge
   dynamic_reconfigure
   image_transport
@@ -75,6 +77,11 @@ install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/
 
 install(DIRECTORY
   launch
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+)
+
+install(DIRECTORY
+  params
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 )
 
