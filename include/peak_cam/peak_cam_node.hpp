@@ -105,6 +105,7 @@ private:
   peak::ipl::PixelFormatName m_pixelFormat;
   
   std::shared_ptr<sensor_msgs::Image> m_image;
+  std::shared_ptr<std_msgs::Header> m_header;
 
   // Camera Parameters
   Peak_Params m_peakParams;

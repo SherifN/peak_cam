@@ -76,7 +76,10 @@ void PeakCamNode::onInit()
   m_pubCameraInfo =
     m_nodeHandle.advertise<sensor_msgs::CameraInfo>("camera_info", 1);
   
-  
+  // Initialize header messages
+  m_header.reset(new std_msgs::Header());
+  m_header->frame_id = frame_id;
+
   // Initialize Camera Info Manager
   m_cameraInfoManager =
     new camera_info_manager::CameraInfoManager(
@@ -310,9 +313,14 @@ void PeakCamNode::acquisitionLoop(const ros::TimerEvent & event)
 {
   while (m_acquisitionLoopRunning) {
     try {
+      m_header->stamp = ros::Time::now();
       ROS_INFO_ONCE("[PeakCamNode]: Acquisition started");
       // get buffer from data stream and process it
       auto buffer = m_dataStream->WaitForFinishedBuffer(5000);
+
+      auto ci = m_cameraInfoManager->getCameraInfo();
+      sensor_msgs::CameraInfoPtr camera_info_msg(new sensor_msgs::CameraInfo(ci));
+      camera_info_msg->header = *m_header;
 
       const auto imageBufferSize = m_peakParams.ImageWidth * m_peakParams.ImageHeight * m_bytesPerPixel;
       // buffer processing start
@@ -327,11 +335,11 @@ void PeakCamNode::acquisitionLoop(const ros::TimerEvent & event)
       std::memcpy(cvImage.data, image.Data(), static_cast<size_t>(sizeBuffer));
       // cv_bridge Image is converted to sensor_msgs/Image to publish on ROS Topic
       cv_bridge::CvImage cvBridgeImage;
-      cvBridgeImage.header.stamp = ros::Time::now();
-      cvBridgeImage.header.frame_id = m_peakParams.selectedDevice;
+      cvBridgeImage.header = *m_header;
       cvBridgeImage.encoding = m_image->encoding;
       cvBridgeImage.image = cvImage;
       m_pubImage.publish(cvBridgeImage.toImageMsg());
+      m_pubCameraInfo.publish(*camera_info_msg);
       ROS_INFO_STREAM_ONCE("[PeakCamNode]: Publishing data");
       // queue buffer
       m_dataStream->QueueBuffer(buffer);
