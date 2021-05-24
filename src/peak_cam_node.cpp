@@ -62,11 +62,38 @@ void PeakCamNode::onInit()
   m_nodeHandle = getPrivateNodeHandle();
   m_nodeHandleMT = getMTPrivateNodeHandle();
 
-  std::string camera_topic;
+  std::string camera_topic, camera_info_url, frame_id;
+  m_nodeHandle.getParam("frame_id", frame_id);
   m_nodeHandle.getParam("camera_topic", camera_topic);
+  m_nodeHandle.getParam("camera_info_url", camera_info_url);
+
   ROS_INFO("Setting parameters to:");
+  ROS_INFO("  frame_id: %s", frame_id.c_str());
   ROS_INFO("  camera_topic: %s", camera_topic.c_str());
-  m_imagePublisher = m_nodeHandle.advertise<sensor_msgs::Image>(camera_topic, 1);
+  ROS_INFO("  camera_info_url: %s", camera_info_url.c_str());
+
+  m_pubImage = m_nodeHandle.advertise<sensor_msgs::Image>(camera_topic, 1);
+  m_pubCameraInfo =
+    m_nodeHandle.advertise<sensor_msgs::CameraInfo>("camera_info", 1);
+  
+  
+  // Initialize Camera Info Manager
+  m_cameraInfoManager =
+    new camera_info_manager::CameraInfoManager(
+      m_nodeHandle,
+      frame_id);
+
+  m_cameraInfoManager->setCameraName(frame_id);
+
+  if(m_cameraInfoManager->validateURL(camera_info_url)) {
+    m_cameraInfoManager->loadCameraInfo(camera_info_url);
+  } else {
+    ROS_WARN("The Provided Camera Info URL is invalid or file does not exist:");
+    ROS_WARN("  %s", camera_info_url.c_str());
+    ROS_WARN("Uncalibrated Camera Info will be published...");
+  }
+  
+
   m_handleParams = boost::bind(&PeakCamNode::reconfigureRequest, this, _1, _2);
   m_paramsServer = std::make_shared<dynamic_reconfigure::Server<PeakCamConfig> >(
     m_nodeHandle);
@@ -266,15 +293,15 @@ void PeakCamNode::setDeviceParameters()
   // Set Parameters for ROS Image
   if (m_peakParams.PixelFormat == "Mono8") {
     m_pixelFormat = peak::ipl::PixelFormatName::Mono8;
-    m_image.encoding = sensor_msgs::image_encodings::MONO8;
+    m_image->encoding = sensor_msgs::image_encodings::MONO8;
     m_bytesPerPixel = 1;
   } else if (m_peakParams.PixelFormat == "RGB8") {
     m_pixelFormat = peak::ipl::PixelFormatName::RGB8;
-    m_image.encoding = sensor_msgs::image_encodings::RGB8;
+    m_image->encoding = sensor_msgs::image_encodings::RGB8;
     m_bytesPerPixel = 1;
   } else if (m_peakParams.PixelFormat == "BGR8") {
     m_pixelFormat = peak::ipl::PixelFormatName::BGR8;
-    m_image.encoding = sensor_msgs::image_encodings::BGR8;
+    m_image->encoding = sensor_msgs::image_encodings::BGR8;
     m_bytesPerPixel = 1;
   }
 }
@@ -302,9 +329,9 @@ void PeakCamNode::acquisitionLoop(const ros::TimerEvent & event)
       cv_bridge::CvImage cvBridgeImage;
       cvBridgeImage.header.stamp = ros::Time::now();
       cvBridgeImage.header.frame_id = m_peakParams.selectedDevice;
-      cvBridgeImage.encoding = m_image.encoding;
+      cvBridgeImage.encoding = m_image->encoding;
       cvBridgeImage.image = cvImage;
-      m_imagePublisher.publish(cvBridgeImage.toImageMsg());
+      m_pubImage.publish(cvBridgeImage.toImageMsg());
       ROS_INFO_STREAM_ONCE("[PeakCamNode]: Publishing data");
       // queue buffer
       m_dataStream->QueueBuffer(buffer);
