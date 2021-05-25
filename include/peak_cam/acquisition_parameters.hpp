@@ -37,8 +37,8 @@
 #define PEAK_CAM__ACQUISITION_PARAMETERS_HPP_
 
 #include <peak_ipl/peak_ipl.hpp>
-#include <sensor_msgs/image_encodings.h>
-#include <sensor_msgs/Image.h>
+#include "sensor_msgs/image_encodings.hpp"
+#include "sensor_msgs/msg/image.hpp"
 
 
 namespace peak_cam

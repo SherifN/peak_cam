@@ -7,7 +7,7 @@
 # and modify acquisition_parameters.hpp and setDeviceParameters() function in peak_cam class
 
 frame_id: "peak_cam"
-camera_topic: image_raw
+image_topic: image_raw
 
 
 # choose which device to enter by entering its serial number here

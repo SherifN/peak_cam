@@ -40,21 +40,18 @@
 #include <atomic>
 
 //ROS Headers
-#include "camera_info_manager/camera_info_manager.h"
-#include <ros/ros.h>
-#include <std_msgs/Float64.h>
-#include <sensor_msgs/CameraInfo.h>
-#include <sensor_msgs/Image.h>
-#include <sensor_msgs/image_encodings.h>
-#include <dynamic_reconfigure/server.h>
-#include <nodelet/nodelet.h>
+#include "camera_info_manager/camera_info_manager.hpp"
+#include "rclcpp/rclcpp.hpp"
+#include "std_msgs/msg/float64.hpp"
+#include "sensor_msgs/msg/camera_info.hpp"
+#include "sensor_msgs/msg/image.hpp"
+#include "sensor_msgs/image_encodings.hpp"
 
 //OpenCV Headers
-#include <opencv2/opencv.hpp>
-#include <cv_bridge/cv_bridge.h>
+#include "opencv2/opencv.hpp"
+#include "cv_bridge/cv_bridge.h"
 #include "opencv2/imgproc/imgproc.hpp"
 #include "opencv2/highgui/highgui.hpp"
-#include <cv_bridge/cv_bridge.h>
 
 //IDS Camera Headers
 #include <peak_ipl/peak_ipl.hpp>
@@ -63,56 +60,49 @@
 
 //Parameters
 #include "peak_cam/acquisition_parameters.hpp"
-#include "peak_cam/PeakCamConfig.h"
 
 
 namespace peak_cam
 {
 
-class PeakCamNode : public nodelet::Nodelet
+class PeakCamNode : public rclcpp::Node
 {
 public:
-  PeakCamNode();
+  explicit PeakCamNode(const rclcpp::NodeOptions & options);
   ~PeakCamNode();
-  
-  ///
-  /// Initialize Nodelet member variables
-  ///
-  /// @return void
-  ///
-  void onInit();
-  // acquisitionLoop function and bool are public to run on particular thread
-  void acquisitionLoop(const ros::TimerEvent & event);
-  
-  // Preventing two threads to acces variable acquisitionLoopRunning
-  std::atomic<bool> m_acquisitionLoopRunning{false};
 
 private:
-  ros::NodeHandle m_nodeHandle;
-  ros::NodeHandle m_nodeHandleMT;
-  ros::Publisher m_pubImage, m_pubCameraInfo;
+  rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr m_pubImage;
+  rclcpp::Publisher<sensor_msgs::msg::CameraInfo>::SharedPtr m_pubCameraInfo;
 
   /// Camera Info Manager
-  camera_info_manager::CameraInfoManager *m_cameraInfoManager;
+  std::shared_ptr<camera_info_manager::CameraInfoManager> m_cameraInfoManager;
 
-  ros::Timer m_acquisitionTimer;
-
-  std::shared_ptr<dynamic_reconfigure::Server<PeakCamConfig> > m_paramsServer;
-  dynamic_reconfigure::Server<PeakCamConfig>::CallbackType m_handleParams;
   std::shared_ptr<peak::core::DataStream> m_dataStream;
   std::shared_ptr<peak::core::Device> m_device;
   std::shared_ptr<peak::core::NodeMap> m_nodeMapRemoteDevice;
   peak::ipl::PixelFormatName m_pixelFormat;
   
-  std::shared_ptr<sensor_msgs::Image> m_image;
-  std::shared_ptr<std_msgs::Header> m_header;
+  sensor_msgs::msg::Image::SharedPtr m_image;
+  std_msgs::msg::Header::SharedPtr m_header;
+  sensor_msgs::msg::CameraInfo::SharedPtr m_cameraInfo;
+
+  rclcpp::TimerBase::SharedPtr m_acquisitionTimer;
+
+  cv_bridge::CvImagePtr m_cvImage;
 
   // Camera Parameters
   Peak_Params m_peakParams;
 
+  std::string m_frameId, m_imageTopic, m_cameraInfoUrl;
   uint8_t m_bytesPerPixel;
 
-  void reconfigureRequest(const PeakCamConfig &, uint32_t);
+  // Preventing two threads to acces variable acquisitionLoopRunning
+  std::atomic<bool> m_acquisitionLoopRunning{false};
+
+  // acquisitionLoop function and bool are public to run on particular thread
+  void acquisitionLoop();
+  void getParams();
   void openDevice();
   void setDeviceParameters();
   void closeDevice();

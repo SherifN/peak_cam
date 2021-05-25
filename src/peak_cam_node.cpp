@@ -38,76 +38,99 @@
 namespace peak_cam
 {
 
-PeakCamNode::PeakCamNode()
+PeakCamNode::PeakCamNode(const rclcpp::NodeOptions & options)
+: rclcpp::Node("peak_cam_node", options)
 {
-  // constructor
+  getParams();
+
+  m_pubImage = this->create_publisher<sensor_msgs::msg::Image>(m_imageTopic, 1);
+  m_pubCameraInfo =
+    this->create_publisher<sensor_msgs::msg::CameraInfo>("camera_info", 1);
+  
+  // Initialize header messages
+  m_header.reset(new std_msgs::msg::Header());
+  m_header->frame_id = m_frameId;
+
+  // Initialize Camera Info Manager
+  m_cameraInfoManager =
+    std::make_shared<camera_info_manager::CameraInfoManager>(
+      this,
+      m_frameId,
+      m_cameraInfoUrl);
+
+  m_cameraInfoManager->setCameraName(m_frameId);
+
+  if(m_cameraInfoManager->validateURL(m_cameraInfoUrl)) {
+    m_cameraInfoManager->loadCameraInfo(m_cameraInfoUrl);
+  } else {
+    RCLCPP_WARN(this->get_logger(), "The Provided Camera Info URL is invalid or file does not exist:");
+    RCLCPP_WARN(this->get_logger(), "  %s", m_cameraInfoUrl.c_str());
+    RCLCPP_WARN(this->get_logger(), "Uncalibrated Camera Info will be published...");
+  }
+  
+  // set acqusition callback
+  m_acquisitionTimer =
+    this->create_wall_timer(
+      std::chrono::milliseconds(10),
+      std::bind(&PeakCamNode::acquisitionLoop, this));
+  
+  peak::Library::Initialize();
+  openDevice();
 }
 
 PeakCamNode::~PeakCamNode()
 {
-  ROS_INFO("Shutting down");
-  m_acquisitionTimer.stop();
+  RCLCPP_INFO(this->get_logger(), "Shutting down");
   m_nodeMapRemoteDevice->FindNode<peak::core::nodes::CommandNode>("AcquisitionStop")->Execute();
   m_nodeMapRemoteDevice->FindNode<peak::core::nodes::CommandNode>("AcquisitionStop")->WaitUntilDone();
   // closing camera und peak library
   closeDevice();
   peak::Library::Close();
-  ROS_INFO("Peak library closed");
-  ros::shutdown();
+  RCLCPP_INFO(this->get_logger(), "Peak library closed");
 }
 
-void PeakCamNode::onInit()
+void PeakCamNode::getParams()
 {
-  // requried for nodelets
-  m_nodeHandle = getPrivateNodeHandle();
-  m_nodeHandleMT = getMTPrivateNodeHandle();
-
-  std::string camera_topic, camera_info_url, frame_id;
-  m_nodeHandle.getParam("frame_id", frame_id);
-  m_nodeHandle.getParam("camera_topic", camera_topic);
-  m_nodeHandle.getParam("camera_info_url", camera_info_url);
-
-  ROS_INFO("Setting parameters to:");
-  ROS_INFO("  frame_id: %s", frame_id.c_str());
-  ROS_INFO("  camera_topic: %s", camera_topic.c_str());
-  ROS_INFO("  camera_info_url: %s", camera_info_url.c_str());
-
-  m_pubImage = m_nodeHandle.advertise<sensor_msgs::Image>(camera_topic, 1);
-  m_pubCameraInfo =
-    m_nodeHandle.advertise<sensor_msgs::CameraInfo>("camera_info", 1);
-  
-  // Initialize header messages
-  m_header.reset(new std_msgs::Header());
-  m_header->frame_id = frame_id;
-
-  // Initialize Camera Info Manager
-  m_cameraInfoManager =
-    new camera_info_manager::CameraInfoManager(
-      m_nodeHandle,
-      frame_id);
-
-  m_cameraInfoManager->setCameraName(frame_id);
-
-  if(m_cameraInfoManager->validateURL(camera_info_url)) {
-    m_cameraInfoManager->loadCameraInfo(camera_info_url);
-  } else {
-    ROS_WARN("The Provided Camera Info URL is invalid or file does not exist:");
-    ROS_WARN("  %s", camera_info_url.c_str());
-    ROS_WARN("Uncalibrated Camera Info will be published...");
+  try {
+    m_frameId = declare_parameter("frame_id").get<std::string>();
+  } catch (rclcpp::ParameterTypeException & ex) {
+    RCLCPP_ERROR(get_logger(), "The frame_id provided was invalid");
+    throw ex;
   }
   
+  try {
+    m_imageTopic = declare_parameter("image_topic").get<std::string>();
+  } catch (rclcpp::ParameterTypeException & ex) {
+    RCLCPP_ERROR(get_logger(), "The image_topic provided was invalid");
+    throw ex;
+  }
 
-  m_handleParams = boost::bind(&PeakCamNode::reconfigureRequest, this, _1, _2);
-  m_paramsServer = std::make_shared<dynamic_reconfigure::Server<PeakCamConfig> >(
-    m_nodeHandle);
-  m_paramsServer->setCallback(m_handleParams);
+  try {
+    m_cameraInfoUrl = declare_parameter("camera_info_url").get<std::string>();
+  } catch (rclcpp::ParameterTypeException & ex) {
+    RCLCPP_ERROR(get_logger(), "The camera_info_url provided was invalid");
+    throw ex;
+  }
 
-  // set acqusition callback
-  m_acquisitionTimer =
-    m_nodeHandleMT.createTimer(ros::Duration(0.1), &PeakCamNode::acquisitionLoop, this); 
-  
-  peak::Library::Initialize();
-  openDevice();
+  // m_peakParams.ExposureTime = config.ExposureTime;
+  // m_peakParams.AcquisitionFrameRate = config.AcquisitionFrameRate;
+  // m_peakParams.Gamma = config.Gamma;
+  // m_peakParams.selectedDevice = config.selectedDevice;
+  // m_peakParams.GainAuto = config.GainAuto;
+  // m_peakParams.GainSelector = config.GainSelector;
+  // m_peakParams.ExposureAuto = config.ExposureAuto;
+  // m_peakParams.PixelFormat = config.PixelFormat;
+  // m_peakParams.ImageHeight = config.ImageHeight;
+  // m_peakParams.ImageWidth = config.ImageWidth;
+  // m_peakParams.UseOffset = config.UseOffset;
+  // m_peakParams.OffsetWidth = config.OffsetWidth;
+  // m_peakParams.OffsetHeight = config.OffsetHeight;
+  // m_peakParams.TriggerMode = config.TriggerMode;
+
+  RCLCPP_INFO(this->get_logger(), "Setting parameters to:");
+  RCLCPP_INFO(this->get_logger(), "  frame_id: %s", m_frameId.c_str());
+  RCLCPP_INFO(this->get_logger(), "  image_topic: %s", m_imageTopic.c_str());
+  RCLCPP_INFO(this->get_logger(), "  camera_info_url: %s", m_cameraInfoUrl.c_str());
 }
 
 void PeakCamNode::openDevice()
@@ -124,7 +147,7 @@ void PeakCamNode::openDevice()
       // exit program if no device was found
       if (deviceManager.Devices().empty())
       {
-        ROS_INFO("No device found. Exiting program");
+        RCLCPP_INFO(this->get_logger(), "No device found. Exiting program");
         // close library before exiting program
         peak::Library::Close();
         return;
@@ -132,10 +155,10 @@ void PeakCamNode::openDevice()
       
       // list all available devices
       size_t i = 0;
-      ROS_INFO_ONCE("Devices available: ");
+      RCLCPP_INFO_ONCE(this->get_logger(), "Devices available: ");
       for (const auto& deviceDescriptor : deviceManager.Devices())
       {
-        ROS_INFO("  %lu: %s", i, deviceDescriptor->DisplayName().c_str());
+        RCLCPP_INFO(this->get_logger(), "  %lu: %s", i, deviceDescriptor->DisplayName().c_str());
         ++i;
       }
         
@@ -146,7 +169,7 @@ void PeakCamNode::openDevice()
       {
         if (m_peakParams.selectedDevice == deviceDescriptor->SerialNumber())
         {
-          ROS_INFO_ONCE("SELECTING NEW DEVICE: %lu", i);
+          RCLCPP_INFO_ONCE(this->get_logger(), "SELECTING NEW DEVICE: %lu", i);
           selectedDevice = i;
         }
         ++i;
@@ -155,8 +178,11 @@ void PeakCamNode::openDevice()
       // get vector of device descriptors
       auto deviceDesrciptors = deviceManager.Devices();
       // open the selected device
-      m_device = deviceManager.Devices().at(selectedDevice)->OpenDevice(peak::core::DeviceAccessType::Control);
-      ROS_INFO_STREAM("[PeakCamNode]: " << m_device->ModelName() << " found");
+      m_device =
+        deviceManager.Devices().at(selectedDevice)->OpenDevice(
+          peak::core::DeviceAccessType::Control);
+      RCLCPP_INFO_STREAM(
+        this->get_logger(), "[PeakCamNode]: " << m_device->ModelName() << " found");
       // get the remote device node map
       m_nodeMapRemoteDevice = m_device->RemoteDevice()->NodeMaps().at(0); 
       std::vector<std::shared_ptr<peak::core::nodes::Node>> nodes = m_nodeMapRemoteDevice->Nodes();
@@ -165,10 +191,11 @@ void PeakCamNode::openDevice()
       // open the first data stream
       m_dataStream = m_device->DataStreams().at(0)->OpenDataStream(); 
       // get payload size
-      auto payloadSize = m_nodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("PayloadSize")->Value();
+      auto payloadSize =
+        m_nodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("PayloadSize")->Value();
       
-      // get number of buffers to allocate
-      // the buffer count depends on your application, here the minimum required number for the data stream
+      // get number of buffers to allocate the buffer count depends on your application
+      // here the minimum required number for the data stream
       auto bufferCountMax = m_dataStream->NumBuffersAnnouncedMinRequired();
       
       // allocate and announce image buffers and queue them
@@ -183,13 +210,20 @@ void PeakCamNode::openDevice()
       // start the data stream
       m_dataStream->StartAcquisition();
       // start the device
-      m_nodeMapRemoteDevice->FindNode<peak::core::nodes::CommandNode>("AcquisitionStart")->Execute();
-      m_nodeMapRemoteDevice->FindNode<peak::core::nodes::CommandNode>("AcquisitionStart")->WaitUntilDone();
-      ROS_INFO_STREAM("[PeakCamNode]: " << m_device->ModelName() << " connected");
+      m_nodeMapRemoteDevice->FindNode<peak::core::nodes::CommandNode>(
+        "AcquisitionStart")->Execute();
+      m_nodeMapRemoteDevice->FindNode<peak::core::nodes::CommandNode>(
+        "AcquisitionStart")->WaitUntilDone();
+      RCLCPP_INFO_STREAM(
+        this->get_logger(), "[PeakCamNode]: " << m_device->ModelName() << " connected");
       m_acquisitionLoopRunning = true;
     } catch (const std::exception& e) {
-      ROS_ERROR_STREAM_ONCE("[PeakCamNode]: EXCEPTION: " << e.what());
-      ROS_ERROR_STREAM("[PeakCamNode]: Device at port " << m_peakParams.selectedDevice << " not connected or must run as root!");
+      RCLCPP_ERROR_STREAM_ONCE(
+        this->get_logger(), "[PeakCamNode]: EXCEPTION: " << e.what());
+      RCLCPP_ERROR_STREAM_ONCE(
+        this->get_logger(),
+        "[PeakCamNode]: Device at port " << m_peakParams.selectedDevice <<
+        " not connected or must run as root!");
     }
   }
 }
@@ -198,14 +232,14 @@ void PeakCamNode::setDeviceParameters()
 {
   int maxWidth, maxHeight = 0;
   maxWidth = m_nodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("WidthMax")->Value();
-  // ROS_INFO_STREAM("[PeakCamNode]: maxWidth '" << maxWidth << "'");
+  // RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: maxWidth '" << maxWidth << "'");
   maxHeight = m_nodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("HeightMax")->Value();
-  // ROS_INFO_STREAM("[PeakCamNode]: maxHeight '" << maxHeight << "'");
+  // RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: maxHeight '" << maxHeight << "'");
   // Set Width, Height
   m_nodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("Width")->SetValue(m_peakParams.ImageWidth);
-  ROS_INFO_STREAM("[PeakCamNode]: ImageWidth is set to '" << m_peakParams.ImageWidth << "'");
+  RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: ImageWidth is set to '" << m_peakParams.ImageWidth << "'");
   m_nodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("Height")->SetValue(m_peakParams.ImageHeight);
-  ROS_INFO_STREAM("[PeakCamNode]: ImageHeight is set to '" << m_peakParams.ImageHeight << "'");
+  RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: ImageHeight is set to '" << m_peakParams.ImageHeight << "'");
   
   if (m_peakParams.UseOffset) {
     m_nodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("OffsetX")->SetValue(m_peakParams.OffsetWidth);
@@ -218,29 +252,29 @@ void PeakCamNode::setDeviceParameters()
 
   //Set GainAuto Parameter
   m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("GainAuto")->SetCurrentEntry(m_peakParams.GainAuto);
-  ROS_INFO_STREAM("[PeakCamNode]: GainAuto is set to '" << m_peakParams.GainAuto << "'");
+  RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: GainAuto is set to '" << m_peakParams.GainAuto << "'");
   //Set GainSelector Parameter
   m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("GainSelector")->SetCurrentEntry(m_peakParams.GainSelector);
-  ROS_INFO_STREAM("[PeakCamNode]: GainSelector is set to '" << m_peakParams.GainSelector << "'");
+  RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: GainSelector is set to '" << m_peakParams.GainSelector << "'");
   //Set ExposureAuto Parameter
   m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("ExposureAuto")->SetCurrentEntry(m_peakParams.ExposureAuto);
-  ROS_INFO_STREAM("[PeakCamNode]: ExposureAuto is set to '" << m_peakParams.ExposureAuto << "'");
+  RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: ExposureAuto is set to '" << m_peakParams.ExposureAuto << "'");
 
   //Set ExposureTime Parameter
   if(m_peakParams.ExposureAuto == "Off")
   {
     m_nodeMapRemoteDevice->FindNode<peak::core::nodes::FloatNode>("ExposureTime")->SetValue(m_peakParams.ExposureTime);
-    ROS_INFO_STREAM("[PeakCamNode]: ExposureTime is set to " << m_peakParams.ExposureTime << " microseconds");
+    RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: ExposureTime is set to " << m_peakParams.ExposureTime << " microseconds");
   }
   //Set AcquisitionFrameRate Parameter
   m_nodeMapRemoteDevice->FindNode<peak::core::nodes::FloatNode>("AcquisitionFrameRate")->SetValue(m_peakParams.AcquisitionFrameRate);
-  ROS_INFO_STREAM("[PeakCamNode]: AcquisitionFrameRate is set to " << m_peakParams.AcquisitionFrameRate << " Hz");
+  RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: AcquisitionFrameRate is set to " << m_peakParams.AcquisitionFrameRate << " Hz");
   //Set Gamma Parameter
   m_nodeMapRemoteDevice->FindNode<peak::core::nodes::FloatNode>("Gamma")->SetValue(m_peakParams.Gamma);
-  ROS_INFO_STREAM("[PeakCamNode]: Gamma is set to " << m_peakParams.Gamma);
+  RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: Gamma is set to " << m_peakParams.Gamma);
   //Set PixelFormat Parameter
   m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("PixelFormat")->SetCurrentEntry(m_peakParams.PixelFormat);
-  ROS_INFO_STREAM("[PeakCamNode]: PixelFormat is set to '" << m_peakParams.PixelFormat << "'");
+  RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: PixelFormat is set to '" << m_peakParams.PixelFormat << "'");
 
   // Set TriggerMode
   if (m_peakParams.TriggerMode == "On" ) {
@@ -290,7 +324,7 @@ void PeakCamNode::setDeviceParameters()
        ->SetCurrentEntry("RisingEdge");
     }
   } else {
-    ROS_INFO_STREAM("[PeakCamNode] No Trigger Specified, running continously");
+    RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode] No Trigger Specified, running continously");
   }
     
   // Set Parameters for ROS Image
@@ -309,18 +343,18 @@ void PeakCamNode::setDeviceParameters()
   }
 }
 
-void PeakCamNode::acquisitionLoop(const ros::TimerEvent & event)
+void PeakCamNode::acquisitionLoop()
 {
   while (m_acquisitionLoopRunning) {
     try {
-      m_header->stamp = ros::Time::now();
-      ROS_INFO_ONCE("[PeakCamNode]: Acquisition started");
+      m_header->stamp = this->now();
+      RCLCPP_INFO_ONCE(this->get_logger(), "[PeakCamNode]: Acquisition started");
       // get buffer from data stream and process it
       auto buffer = m_dataStream->WaitForFinishedBuffer(5000);
 
       auto ci = m_cameraInfoManager->getCameraInfo();
-      sensor_msgs::CameraInfoPtr camera_info_msg(new sensor_msgs::CameraInfo(ci));
-      camera_info_msg->header = *m_header;
+      m_cameraInfo.reset(new sensor_msgs::msg::CameraInfo(ci));
+      m_cameraInfo->header = *m_header;
 
       const auto imageBufferSize = m_peakParams.ImageWidth * m_peakParams.ImageHeight * m_bytesPerPixel;
       // buffer processing start
@@ -334,20 +368,19 @@ void PeakCamNode::acquisitionLoop(const ros::TimerEvent & event)
       // Device buffer is being copied into cv_bridge format
       std::memcpy(cvImage.data, image.Data(), static_cast<size_t>(sizeBuffer));
       // cv_bridge Image is converted to sensor_msgs/Image to publish on ROS Topic
-      cv_bridge::CvImage cvBridgeImage;
-      cvBridgeImage.header = *m_header;
-      cvBridgeImage.encoding = m_image->encoding;
-      cvBridgeImage.image = cvImage;
-      m_pubImage.publish(cvBridgeImage.toImageMsg());
-      m_pubCameraInfo.publish(*camera_info_msg);
-      ROS_INFO_STREAM_ONCE("[PeakCamNode]: Publishing data");
+      m_cvImage->header = *m_header;
+      m_cvImage->encoding = m_image->encoding;
+      m_cvImage->image = cvImage;
+      m_pubImage->publish(*m_cvImage->toImageMsg());
+      m_pubCameraInfo->publish(*m_cameraInfo);
+      RCLCPP_INFO_STREAM_ONCE(this->get_logger(), "[PeakCamNode]: Publishing data");
       // queue buffer
       m_dataStream->QueueBuffer(buffer);
     } catch (const std::exception &e) {
-      ROS_ERROR_STREAM("[PeakCamNode]: EXCEPTION: " << e.what());
-      ROS_ERROR("[PeakCamNode]: Acquisition loop stopped, device may be disconnected!");
-      ROS_ERROR("[PeakCamNode]: No device reset available");
-      ROS_ERROR("[PeakCamNode]: Restart peak cam node!");
+      RCLCPP_ERROR_STREAM(this->get_logger(), "[PeakCamNode]: EXCEPTION: " << e.what());
+      RCLCPP_ERROR(this->get_logger(), "[PeakCamNode]: Acquisition loop stopped, device may be disconnected!");
+      RCLCPP_ERROR(this->get_logger(), "[PeakCamNode]: No device reset available");
+      RCLCPP_ERROR(this->get_logger(), "[PeakCamNode]: Restart peak cam node!");
     }
   }
 }
@@ -358,10 +391,10 @@ void PeakCamNode::closeDevice()
   if (m_device) {
     try {
       m_nodeMapRemoteDevice->FindNode<peak::core::nodes::CommandNode>("AcquisitionStop")->Execute();
-      ROS_INFO("Executing 'AcquisitionStop'");
+      RCLCPP_INFO(this->get_logger(), "Executing 'AcquisitionStop'");
       m_acquisitionLoopRunning = false;
     } catch (const std::exception &e) {
-      ROS_ERROR_STREAM("EXCEPTION: " << e.what());
+      RCLCPP_ERROR_STREAM(this->get_logger(), "EXCEPTION: " << e.what());
     }
   }
   // if data stream was opened, try to stop it and revoke its image buffers
@@ -373,33 +406,14 @@ void PeakCamNode::closeDevice()
       for (const auto &buffer : m_dataStream->AnnouncedBuffers()) {
         m_dataStream->RevokeBuffer(buffer);
       }
-      ROS_INFO("'AcquisitionStop' Succesful");
+      RCLCPP_INFO(this->get_logger(), "'AcquisitionStop' Succesful");
       m_acquisitionLoopRunning = false;
     } catch (const std::exception &e) {
-      ROS_ERROR_STREAM("EXCEPTION: " << e.what());
+      RCLCPP_ERROR_STREAM(this->get_logger(), "EXCEPTION: " << e.what());
     }
   }
 }
-
-void PeakCamNode::reconfigureRequest(const PeakCamConfig &config, uint32_t level)
-{
-  m_peakParams.ExposureTime = config.ExposureTime;
-  m_peakParams.AcquisitionFrameRate = config.AcquisitionFrameRate;
-  m_peakParams.Gamma = config.Gamma;
-  m_peakParams.selectedDevice = config.selectedDevice;
-  m_peakParams.GainAuto = config.GainAuto;
-  m_peakParams.GainSelector = config.GainSelector;
-  m_peakParams.ExposureAuto = config.ExposureAuto;
-  m_peakParams.PixelFormat = config.PixelFormat;
-  m_peakParams.ImageHeight = config.ImageHeight;
-  m_peakParams.ImageWidth = config.ImageWidth;
-  m_peakParams.UseOffset = config.UseOffset;
-  m_peakParams.OffsetWidth = config.OffsetWidth;
-  m_peakParams.OffsetHeight = config.OffsetHeight;
-  m_peakParams.TriggerMode = config.TriggerMode;
-}
-
 } // namespace peak_cam
 
-#include <pluginlib/class_list_macros.h>  // NOLINT
-PLUGINLIB_EXPORT_CLASS(peak_cam::PeakCamNode, nodelet::Nodelet)
+#include <rclcpp_components/register_node_macro.hpp>  // NOLINT
+RCLCPP_COMPONENTS_REGISTER_NODE(peak_cam::PeakCamNode)

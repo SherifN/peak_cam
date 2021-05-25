@@ -9,18 +9,22 @@
 
   <license>BSD</license>
 
-  <buildtool_depend>catkin</buildtool_depend>
+  <buildtool_depend>ament_cmake_auto</buildtool_depend>
   
+  <depend>rclcpp</depend>
+  <depend>rclcpp_components</depend>
   <depend>camera_info_manager</depend>
   <depend>cv_bridge</depend>
-  <depend>dynamic_reconfigure</depend>
   <depend>image_transport</depend>
-  <depend>roscpp</depend>
+
   <depend>sensor_msgs</depend>
   <depend>std_msgs</depend>
-  <depend>nodelet</depend>
+
+  <test_depend>ament_cmake_gtest</test_depend>
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>ament_lint_common</test_depend>
 
   <export>
-    <nodelet plugin="${prefix}/nodelet.xml" />
+    <build_type>ament_cmake</build_type>
   </export>
 </package>
