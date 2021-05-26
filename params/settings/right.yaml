@@ -5,45 +5,51 @@
 # To add more parameters to your camera please view the IDS Vision Reference at 
 # https://de.ids-imaging.com/manuals-ids-peak.html 
 # and modify acquisition_parameters.hpp and setDeviceParameters() function in peak_cam class
+/**:
+  ros__parameters:
+    frame_id: camera_right
+    image_topic: image_raw
+    
+    # choose which device to enter 
+    # first device at "0" by default
+    selectedDevice: "4103432591"
+    
+    ImageHeight: 320
+    ImageWidth: 1088
 
-frame_id: camera_right
-image_topic: image_raw
+    UseOffset: False
+    OffsetWidth: 0
+    OffsetHeight: 0
 
-# choose which device to enter 
-# first device at "0" by default
-selectedDevice: "4103432591"
 
-ImageHeight: 320
-ImageWidth: 1088
-
-# Pixelformat
-# In IDS Implemented: ["Mono8", "Mono10", "Mono12", "Mono10p", "Mono12p", "BayerRG8", "BayerRG10", "BayerRG12", "BayerRG10p", "BayerRG12p", "RGB8", "RGB10p32", "BGR8", "BGR10p32"]
-# Possible: ["Mono8", "RGB8", "BGR8"] as string! 
-PixelFormat: "RGB8"
-
-# ExposureTime in μs
-# limits the Acquisition Framerate
-# When ExposureAuto is set to "Once" or "Continuous" the value won't be used
-ExposureTime: 5000
-
-# AcquisitionFrameRate in Hz
-# WATCH OUT when AcquisitionFrameRate is too high there might be some latency. Check "rostopic hz /cameratopic"
-AcquisitionFrameRate: 10
-
-# Gamma
-# Range [0.3, ..., 3.0]
-# If no Gamma correction ist needed set to 1.0
-Gamma: 1.0
-
-# ExposureAuto Setting 
-# If ExposureAuto On set ExposureTime to any value ExposureTime [sek] < 1 / AcquisitionFrameRate [sek]
-# Possible: ["Off", "Once", "Continuous"] as string! 
-ExposureAuto: "Continuous"
-
-# GainAuto Setting 
-# Possible: ["Off", "Once", "Continuous"] as string! 
-GainAuto: "Continuous"
-
-# GainSelector Setting 
-# Possible: ["AnalogAllSource", "AnalogAll", "AnalogRed", "AnalogGreen", "AnalogBlue", "DigitalAll", "DigitalRed", "DigitalGreen", "DigitalBlue"] as string! 
-GainSelector: "DigitalAll"
+    # Pixelformat
+    # In IDS Implemented: ["Mono8", "Mono10", "Mono12", "Mono10p", "Mono12p", "BayerRG8", "BayerRG10", "BayerRG12", "BayerRG10p", "BayerRG12p", "RGB8", "RGB10p32", "BGR8", "BGR10p32"]
+    # Possible: ["Mono8", "RGB8", "BGR8"] as string! 
+    PixelFormat: "RGB8"
+    
+    # ExposureTime in μs
+    # limits the Acquisition Framerate
+    # When ExposureAuto is set to "Once" or "Continuous" the value won't be used
+    ExposureTime: 5000
+    
+    # AcquisitionFrameRate in Hz
+    # WATCH OUT when AcquisitionFrameRate is too high there might be some latency. Check "rostopic hz /cameratopic"
+    AcquisitionFrameRate: 10
+    
+    # Gamma
+    # Range [0.3, ..., 3.0]
+    # If no Gamma correction ist needed set to 1.0
+    Gamma: 1.0
+    
+    # ExposureAuto Setting 
+    # If ExposureAuto On set ExposureTime to any value ExposureTime [sek] < 1 / AcquisitionFrameRate [sek]
+    # Possible: ["Off", "Once", "Continuous"] as string! 
+    ExposureAuto: "Continuous"
+    
+    # GainAuto Setting 
+    # Possible: ["Off", "Once", "Continuous"] as string! 
+    GainAuto: "Continuous"
+    
+    # GainSelector Setting 
+    # Possible: ["AnalogAllSource", "AnalogAll", "AnalogRed", "AnalogGreen", "AnalogBlue", "DigitalAll", "DigitalRed", "DigitalGreen", "DigitalBlue"] as string! 
+    GainSelector: "DigitalAll"
