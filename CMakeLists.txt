@@ -42,4 +42,12 @@ rclcpp_components_register_node(${PROJECT_NAME}
   EXECUTABLE peak_cam_node
 )
 
+install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/launch
+  DESTINATION ${CMAKE_INSTALL_PREFIX}/share/${PROJECT_NAME}
+)
+
+install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/params
+  DESTINATION ${CMAKE_INSTALL_PREFIX}/share/${PROJECT_NAME}
+)
+
 ament_auto_package()
