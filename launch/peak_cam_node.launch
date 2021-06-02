@@ -3,10 +3,10 @@
   <arg name="manager_name" default="$(arg node_name)_manager" />
   <arg name="settings" default="$(find peak_cam)/params/settings/peak_cam_params.yaml" />
   <arg name="camera_info" default="file://$(find peak_cam)/params/intrinsics/default_camera_info.yaml" />
+  <arg name="independentLaunch" default="True" />
 
   <!-- Nodelet Manager -->
-  <node pkg="nodelet" type="nodelet" name="$(arg manager_name)" args="manager" output="screen">
-    <param name="num_worker_threads" value="2" />
+  <node pkg="nodelet" type="nodelet" name="$(arg manager_name)" args="manager" output="screen" if="$(arg independentLaunch)">
   </node>
 
   <node pkg="nodelet" type="nodelet" name="$(arg node_name)" args="load peak_cam/PeakCamNode $(arg manager_name)" output="screen">

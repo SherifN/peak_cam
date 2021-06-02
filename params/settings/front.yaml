@@ -6,7 +6,7 @@
 # https://de.ids-imaging.com/manuals-ids-peak.html 
 # and modify acquisition_parameters.hpp and setDeviceParameters() function in peak_cam class
 
-frame_id: "camera_front"
+frame_id: camera_front
 camera_topic: image_raw
 
 # choose which device to enter 

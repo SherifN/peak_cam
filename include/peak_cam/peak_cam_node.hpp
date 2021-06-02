@@ -104,7 +104,7 @@ private:
   std::shared_ptr<peak::core::NodeMap> m_nodeMapRemoteDevice;
   peak::ipl::PixelFormatName m_pixelFormat;
   
-  std::shared_ptr<sensor_msgs::Image> m_image;
+  std::string m_image_encoding;
   std::shared_ptr<std_msgs::Header> m_header;
 
   // Camera Parameters

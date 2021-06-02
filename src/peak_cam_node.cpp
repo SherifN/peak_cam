@@ -296,15 +296,15 @@ void PeakCamNode::setDeviceParameters()
   // Set Parameters for ROS Image
   if (m_peakParams.PixelFormat == "Mono8") {
     m_pixelFormat = peak::ipl::PixelFormatName::Mono8;
-    m_image->encoding = sensor_msgs::image_encodings::MONO8;
+    m_image_encoding = sensor_msgs::image_encodings::MONO8;
     m_bytesPerPixel = 1;
   } else if (m_peakParams.PixelFormat == "RGB8") {
     m_pixelFormat = peak::ipl::PixelFormatName::RGB8;
-    m_image->encoding = sensor_msgs::image_encodings::RGB8;
+    m_image_encoding = sensor_msgs::image_encodings::RGB8;
     m_bytesPerPixel = 1;
   } else if (m_peakParams.PixelFormat == "BGR8") {
     m_pixelFormat = peak::ipl::PixelFormatName::BGR8;
-    m_image->encoding = sensor_msgs::image_encodings::BGR8;
+    m_image_encoding = sensor_msgs::image_encodings::BGR8;
     m_bytesPerPixel = 1;
   }
 }
@@ -336,7 +336,7 @@ void PeakCamNode::acquisitionLoop(const ros::TimerEvent & event)
       // cv_bridge Image is converted to sensor_msgs/Image to publish on ROS Topic
       cv_bridge::CvImage cvBridgeImage;
       cvBridgeImage.header = *m_header;
-      cvBridgeImage.encoding = m_image->encoding;
+      cvBridgeImage.encoding = m_image_encoding;
       cvBridgeImage.image = cvImage;
       m_pubImage.publish(cvBridgeImage.toImageMsg());
       m_pubCameraInfo.publish(*camera_info_msg);
