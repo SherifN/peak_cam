@@ -6,12 +6,11 @@
 # https://de.ids-imaging.com/manuals-ids-peak.html 
 # and modify acquisition_parameters.hpp and setDeviceParameters() function in peak_cam class
 
-frame_id: camera_rear
 camera_topic: image_raw
 
 # choose which device to enter 
 # first device at "0" by default
-selectedDevice: "4103432588"
+selectedDevice: "4103432591"
 
 ImageHeight: 320
 ImageWidth: 1088
