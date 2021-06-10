@@ -6,7 +6,9 @@
 # https://de.ids-imaging.com/manuals-ids-peak.html 
 # and modify acquisition_parameters.hpp and setDeviceParameters() function in peak_cam class
 
-camera_topic: image_raw
+frame_id: "peak_cam"
+image_topic: image_raw
+
 
 # choose which device to enter by entering its serial number here
 # if you dont know it, run this node once and all serial nodes should be printed out
