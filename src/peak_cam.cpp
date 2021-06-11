@@ -201,9 +201,15 @@ void Peak_Cam::setDeviceParameters()
             ROS_INFO_STREAM("[PEAK_CAM]: ExposureTime is set to " << peak_params.ExposureTime << " microseconds");
         }
 
+        ROS_INFO_STREAM("[PEAK_CAM DEB]: " << peak_params.TriggerSource);
         //Set AcquisitionFrameRate Parameter
-        m_nodeMapRemoteDevice->FindNode<peak::core::nodes::FloatNode>("AcquisitionFrameRate")->SetValue(peak_params.AcquisitionFrameRate);
-        ROS_INFO_STREAM("[PEAK_CAM]: AcquisitionFrameRate is set to " << peak_params.AcquisitionFrameRate << " Hz");
+        if (peak_params.TriggerSource == "Off")
+        {
+            m_nodeMapRemoteDevice->FindNode<peak::core::nodes::FloatNode>("AcquisitionFrameRate")->SetValue(peak_params.AcquisitionFrameRate);
+            ROS_INFO_STREAM("[PEAK_CAM]: AcquisitionFrameRate is set to " << peak_params.AcquisitionFrameRate << " Hz");
+        } else {
+            ROS_INFO_STREAM("[PEAK_CAM]: No AcquisitionFrameRate is set, camera is expected to be externally triggered by " << peak_params.TriggerSource);
+        }
 
         //Set Gamma Parameter
         m_nodeMapRemoteDevice->FindNode<peak::core::nodes::FloatNode>("Gamma")->SetValue(peak_params.Gamma);
@@ -333,6 +339,7 @@ void Peak_Cam::closeDevice()
 void Peak_Cam::reconfigureRequest(const Config &config, uint32_t level)
 {
     peak_params.ExposureTime = config.ExposureTime;
+    peak_params.TriggerSource = config.TriggerSource;
     peak_params.AcquisitionFrameRate = config.AcquisitionFrameRate;
     peak_params.Gamma = config.Gamma;
 

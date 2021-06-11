@@ -48,6 +48,7 @@ struct Peak_Params
 {
     std::string selectedDevice{"000000"}; // default to all 0's
     int ExposureTime{100};
+    std::string TriggerSource{"Off"};
     int AcquisitionFrameRate{1};
     int ImageHeight{480};
     int ImageWidth{640};
