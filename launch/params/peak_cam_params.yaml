@@ -27,6 +27,15 @@ PixelFormat: "RGB8"
 # When ExposureAuto is set to "Once" or "Continuous" the value won't be used
 ExposureTime: 5000
 
+# Signal source for Line1 (flash output)
+# Possible: ["Off", "ExposureActive", ...]
+Line1Source: "ExposureActive"
+
+# Trigger Source used to start exposure
+# Autmatically sets TriggerSelector to "ExposureStart", TriggerMode to "On" and TriggerActivation to "RisingEdge"
+# Possible: ["Off", "Line0", ...]
+TriggerSource: "Off"
+
 # AcquisitionFrameRate in Hz
 # WATCH OUT when AcquisitionFrameRate is too high there might be some latency. Check "rostopic hz /cameratopic"
 AcquisitionFrameRate: 1

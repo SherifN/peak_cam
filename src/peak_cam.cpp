@@ -201,15 +201,23 @@ void Peak_Cam::setDeviceParameters()
             ROS_INFO_STREAM("[PEAK_CAM]: ExposureTime is set to " << peak_params.ExposureTime << " microseconds");
         }
 
-        ROS_INFO_STREAM("[PEAK_CAM DEB]: " << peak_params.TriggerSource);
         //Set AcquisitionFrameRate Parameter
         if (peak_params.TriggerSource == "Off")
         {
             m_nodeMapRemoteDevice->FindNode<peak::core::nodes::FloatNode>("AcquisitionFrameRate")->SetValue(peak_params.AcquisitionFrameRate);
             ROS_INFO_STREAM("[PEAK_CAM]: AcquisitionFrameRate is set to " << peak_params.AcquisitionFrameRate << " Hz");
         } else {
+            m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("TriggerSelector")->SetCurrentEntry("ExposureStart");
+            m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("TriggerMode")->SetCurrentEntry("On");
+            m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("TriggerActivation")->SetCurrentEntry("RisingEdge");
+            m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("TriggerSource")->SetCurrentEntry(peak_params.TriggerSource);
             ROS_INFO_STREAM("[PEAK_CAM]: No AcquisitionFrameRate is set, camera is expected to be externally triggered by " << peak_params.TriggerSource);
         }
+
+        //Set Line1 (flash output) signal source
+        m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("LineSelector")->SetCurrentEntry("Line1");
+        m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("LineSource")->SetCurrentEntry(peak_params.Line1Source);
+        ROS_INFO_STREAM("[PEAK_CAM]: Flash output configured to " << peak_params.Line1Source);
 
         //Set Gamma Parameter
         m_nodeMapRemoteDevice->FindNode<peak::core::nodes::FloatNode>("Gamma")->SetValue(peak_params.Gamma);
@@ -340,6 +348,7 @@ void Peak_Cam::reconfigureRequest(const Config &config, uint32_t level)
 {
     peak_params.ExposureTime = config.ExposureTime;
     peak_params.TriggerSource = config.TriggerSource;
+    peak_params.Line1Source = config.Line1Source;
     peak_params.AcquisitionFrameRate = config.AcquisitionFrameRate;
     peak_params.Gamma = config.Gamma;
 
