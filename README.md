@@ -39,9 +39,9 @@ For multiple cameras, create a `.launch` and a `.yaml` file for each camera.
 To synchronously acquire images from two cameras in a stereo vision setup, you might want to let one camera trigger the other. 
 
 1. Setup the GPIO wiring [as proposed by IDS](https://en.ids-imaging.com/application-notes-details/app-note-synchronizing-image-acquisition.html) according to the pin layout found in your camera's datasheet:
-![Flash output trigger wiring](docs/example-wiring-of-flash-output.jpg)
+![Flash output trigger wiring](docs/wiring-flash-output-trigger-input.png)
 
-1. Configure the primary (Master) camera's `.yaml` file with
+1. Configure the primary (master) camera's `.yaml` file with
     ```
     Line1Source: "ExposureActive"
     TriggerSource: "Off"
