@@ -56,7 +56,7 @@ To synchronously acquire images from two cameras in a stereo vision setup, you m
 The cameras can also be triggered by the pulses of external devices such as a lidar sensor.
 
 1. (Activate the trigger output of your external device, e.g., using the `multipurpose_io_mode` flag for Ouster lidars as discussed in [section 5.2.2 of their software user manual](https://data.ouster.io/downloads/software-user-manual/software-user-manual-v2.1.0.pdf#35))
-1. Setup the GPIO wiring in compliance to your hardware, e.g., with an optoisolated open collector circuit:
+1. Setup the GPIO wiring in compliance to your hardware, e.g., with an optoisolated open collector sync pulse circuit:
     
     ![External trigger wiring](docs/wiring-external-trigger.png)
 
