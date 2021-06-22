@@ -221,8 +221,9 @@ void Peak_Cam::setDeviceParameters()
             m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("TriggerActivation")->SetCurrentEntry(peak_params.TriggerActivation);
             m_nodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("TriggerDivider")->SetValue(peak_params.TriggerDivider);
             m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("TriggerSource")->SetCurrentEntry(peak_params.TriggerSource);
-            ROS_INFO_STREAM("[PEAK_CAM]: No AcquisitionFrameRate is set, camera is expected to be externally triggered by " << peak_params.TriggerSource);
-            ROS_WARN_STREAM("[PEAK_CAM]: Make sure trigger rate stays below " << linkRate << "Hz to avoid latency and buffer overflows!");
+            ROS_INFO_STREAM("[PEAK_CAM]: No AcquisitionFrameRate is set, camera is expected to be externally triggered by " << peak_params.TriggerSource << " on " << peak_params.TriggerActivation);
+            ROS_INFO_STREAM("[PEAK_CAM]: TriggerDivider is set to " << peak_params.TriggerDivider);
+            ROS_WARN_STREAM("[PEAK_CAM]: Make sure resulting trigger rate stays below " << linkRate << " Hz to avoid latency and buffer overflows!");
         }
 
         //Set Line1 (flash output) signal source
