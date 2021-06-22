@@ -204,15 +204,15 @@ void Peak_Cam::setDeviceParameters()
         //Set DeviceLinkThroughputLimit Parameter
         m_nodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("DeviceLinkThroughputLimit")->SetValue(peak_params.DeviceLinkThroughputLimit);
         float linkRate = m_nodeMapRemoteDevice->FindNode<peak::core::nodes::FloatNode>("DeviceLinkAcquisitionFrameRateLimit")->Value();
+        ROS_INFO_STREAM("[PEAK_CAM]: DeviceLinkThroughputLimit is set to " << peak_params.DeviceLinkThroughputLimit << " Bps allowing for " << linkRate << " Hz");
         
         //Configure Trigger and set AcquisitionFrameRate Parameter
         if (peak_params.TriggerSource == "Off")
         {
             m_nodeMapRemoteDevice->FindNode<peak::core::nodes::FloatNode>("AcquisitionFrameRate")->SetValue(peak_params.AcquisitionFrameRate);
+            ROS_INFO_STREAM("[PEAK_CAM]: AcquisitionFrameRate is set to " << peak_params.AcquisitionFrameRate << " Hz");
             if(linkRate < peak_params.AcquisitionFrameRate){
-                ROS_INFO_STREAM("[PEAK_CAM]: AcquisitionFrameRate is set to " << peak_params.AcquisitionFrameRate << " Hz (" << linkRate << " Hz possible at DeviceLinkThroughputLimit " << peak_params.DeviceLinkThroughputLimit << " Bps)");
-            } else {
-                ROS_WARN_STREAM("[PEAK_CAM]: AcquisitionFrameRate of " << peak_params.AcquisitionFrameRate << " Hz is higher than " << linkRate << " Hz possible at DeviceLinkThroughputLimit " << peak_params.DeviceLinkThroughputLimit << " Bps! Expect latency and buffer overflows!");
+                ROS_ERROR_STREAM("[PEAK_CAM]: AcquisitionFrameRate is higher than DeviceLinkAcquisitionFrameRateLimit! Expect latency and buffer overflows!");
             }
             
         } else {
@@ -221,7 +221,8 @@ void Peak_Cam::setDeviceParameters()
             m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("TriggerActivation")->SetCurrentEntry(peak_params.TriggerActivation);
             m_nodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("TriggerDivider")->SetValue(peak_params.TriggerDivider);
             m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("TriggerSource")->SetCurrentEntry(peak_params.TriggerSource);
-            ROS_INFO_STREAM("[PEAK_CAM]: No AcquisitionFrameRate is set, camera is expected to be externally triggered by " << peak_params.TriggerSource << " (make sure rate stays below " << linkRate << "Hz with DeviceLinkThroughputLimit" << peak_params.DeviceLinkThroughputLimit << " Bps)");
+            ROS_INFO_STREAM("[PEAK_CAM]: No AcquisitionFrameRate is set, camera is expected to be externally triggered by " << peak_params.TriggerSource);
+            ROS_WARN_STREAM("[PEAK_CAM]: Make sure trigger rate stays below " << linkRate << "Hz to avoid latency and buffer overflows!");
         }
 
         //Set Line1 (flash output) signal source
