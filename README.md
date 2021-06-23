@@ -67,7 +67,7 @@ The cameras can also be triggered by the pulses of external devices such as a li
     TriggerSource: "Line0"
     ```
 
-Copyright (c) 2020, Sherif Nekkah, Fraunhofer IVI and Contributors 
+Copyright (c) 2020, Sherif Nekkah, Felix Keppler (Fraunhofer IVI) and Contributors 
 
 All rights reserved.
 
