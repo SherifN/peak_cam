@@ -201,9 +201,35 @@ void Peak_Cam::setDeviceParameters()
             ROS_INFO_STREAM("[PEAK_CAM]: ExposureTime is set to " << peak_params.ExposureTime << " microseconds");
         }
 
-        //Set AcquisitionFrameRate Parameter
-        m_nodeMapRemoteDevice->FindNode<peak::core::nodes::FloatNode>("AcquisitionFrameRate")->SetValue(peak_params.AcquisitionFrameRate);
-        ROS_INFO_STREAM("[PEAK_CAM]: AcquisitionFrameRate is set to " << peak_params.AcquisitionFrameRate << " Hz");
+        //Set DeviceLinkThroughputLimit Parameter
+        m_nodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("DeviceLinkThroughputLimit")->SetValue(peak_params.DeviceLinkThroughputLimit);
+        float linkRate = m_nodeMapRemoteDevice->FindNode<peak::core::nodes::FloatNode>("DeviceLinkAcquisitionFrameRateLimit")->Value();
+        ROS_INFO_STREAM("[PEAK_CAM]: DeviceLinkThroughputLimit is set to " << peak_params.DeviceLinkThroughputLimit << " Bps allowing for " << linkRate << " Hz");
+        
+        //Configure Trigger and set AcquisitionFrameRate Parameter
+        if (peak_params.TriggerSource == "Off")
+        {
+            m_nodeMapRemoteDevice->FindNode<peak::core::nodes::FloatNode>("AcquisitionFrameRate")->SetValue(peak_params.AcquisitionFrameRate);
+            ROS_INFO_STREAM("[PEAK_CAM]: AcquisitionFrameRate is set to " << peak_params.AcquisitionFrameRate << " Hz");
+            if(linkRate < peak_params.AcquisitionFrameRate){
+                ROS_ERROR_STREAM("[PEAK_CAM]: AcquisitionFrameRate is higher than DeviceLinkAcquisitionFrameRateLimit! Expect latency and buffer overflows!");
+            }
+            
+        } else {
+            m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("TriggerSelector")->SetCurrentEntry("ExposureStart");
+            m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("TriggerMode")->SetCurrentEntry("On");
+            m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("TriggerActivation")->SetCurrentEntry(peak_params.TriggerActivation);
+            m_nodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("TriggerDivider")->SetValue(peak_params.TriggerDivider);
+            m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("TriggerSource")->SetCurrentEntry(peak_params.TriggerSource);
+            ROS_INFO_STREAM("[PEAK_CAM]: No AcquisitionFrameRate is set, camera is expected to be externally triggered by " << peak_params.TriggerSource << " on " << peak_params.TriggerActivation);
+            ROS_INFO_STREAM("[PEAK_CAM]: TriggerDivider is set to " << peak_params.TriggerDivider);
+            ROS_WARN_STREAM("[PEAK_CAM]: Make sure resulting trigger rate stays below " << linkRate << " Hz to avoid latency and buffer overflows!");
+        }
+
+        //Set Line1 (flash output) signal source
+        m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("LineSelector")->SetCurrentEntry("Line1");
+        m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("LineSource")->SetCurrentEntry(peak_params.Line1Source);
+        ROS_INFO_STREAM("[PEAK_CAM]: Flash output configured to " << peak_params.Line1Source);
 
         //Set Gamma Parameter
         m_nodeMapRemoteDevice->FindNode<peak::core::nodes::FloatNode>("Gamma")->SetValue(peak_params.Gamma);
@@ -212,7 +238,7 @@ void Peak_Cam::setDeviceParameters()
         //Set PixelFormat Parameter
         m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("PixelFormat")->SetCurrentEntry(peak_params.PixelFormat);
         ROS_INFO_STREAM("[PEAK_CAM]: PixelFormat is set to '" << peak_params.PixelFormat << "'");
-
+        
         //Set Parameters for ROS Image
         if (peak_params.PixelFormat == "Mono8")
         {
@@ -333,6 +359,10 @@ void Peak_Cam::closeDevice()
 void Peak_Cam::reconfigureRequest(const Config &config, uint32_t level)
 {
     peak_params.ExposureTime = config.ExposureTime;
+    peak_params.TriggerSource = config.TriggerSource;
+    peak_params.TriggerActivation = config.TriggerActivation;
+    peak_params.TriggerDivider = config.TriggerDivider;
+    peak_params.Line1Source = config.Line1Source;
     peak_params.AcquisitionFrameRate = config.AcquisitionFrameRate;
     peak_params.Gamma = config.Gamma;
 
@@ -342,6 +372,8 @@ void Peak_Cam::reconfigureRequest(const Config &config, uint32_t level)
     peak_params.GainSelector = config.GainSelector;    
     peak_params.ExposureAuto = config.ExposureAuto;
     peak_params.PixelFormat = config.PixelFormat;
+
+    peak_params.DeviceLinkThroughputLimit = config.DeviceLinkThroughputLimit;
     
     peak_params.ImageHeight = config.ImageHeight;
     peak_params.ImageWidth = config.ImageWidth;
