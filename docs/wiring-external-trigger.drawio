@@ -1,4 +1,4 @@
-<mxGraphModel dx="1822" dy="916" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+<mxGraphModel dx="1822" dy="796" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
   <root>
     <mxCell id="0" />
     <mxCell id="1" parent="0" />
@@ -82,7 +82,7 @@
     <mxCell id="LtbCuuI-dbo2PIFwW9hz-2" value="" style="pointerEvents=1;verticalLabelPosition=bottom;shadow=0;dashed=0;align=center;html=1;verticalAlign=top;shape=mxgraph.electrical.resistors.resistor_1;rotation=-90;" parent="1" vertex="1">
       <mxGeometry x="70" y="70" width="80" height="20" as="geometry" />
     </mxCell>
-    <mxCell id="LtbCuuI-dbo2PIFwW9hz-5" value="R=V&lt;sub&gt;CC&lt;/sub&gt;/I&lt;sub&gt;Sink, max&lt;/sub&gt;" style="text;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+    <mxCell id="LtbCuuI-dbo2PIFwW9hz-5" value="R&lt;sub&gt;Pull-Up&lt;/sub&gt;" style="text;whiteSpace=wrap;html=1;" parent="1" vertex="1">
       <mxGeometry x="130" y="65" width="110" height="30" as="geometry" />
     </mxCell>
   </root>
