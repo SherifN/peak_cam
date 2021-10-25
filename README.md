@@ -17,7 +17,7 @@ A Linux [ROS C++ Node](https://wiki.ros.org/peak_cam) that wraps the driver API 
 #### Configuration for GigE cameras
 1. Enable jumboframes for the ethernet interface(s) (e.g., `eth0`) used for your camera(s): `ip link set dev eth0 mtu 9000`
 1. Increase receive buffer size [as recommended in the IDS manual](https://en.ids-imaging.com/manuals/ids-peak/ids-peak-user-manual/1.3.1/en/operate-gige-hints-linux.html): `sudo /usr/local/scripts/ids_set_receive_buffer_size.sh`
-1. Make sure to adjust `DeviceLinkThroughputLimit` according to your desired framerate and available hardware (employing separate network interfaces may be beneficial)
+1. Make sure to adjust `DeviceLinkThroughputLimit` in the `.yaml` configuration file according to your desired framerate and available hardware (employing separate network interfaces may be beneficial)
 
 ### Running the code
 
