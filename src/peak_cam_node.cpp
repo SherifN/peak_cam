@@ -242,57 +242,31 @@ void PeakCamNode::setDeviceParameters()
   m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("PixelFormat")->SetCurrentEntry(m_peakParams.PixelFormat);
   ROS_INFO_STREAM("[PeakCamNode]: PixelFormat is set to '" << m_peakParams.PixelFormat << "'");
 
-  // Set TriggerMode
-  if (m_peakParams.TriggerMode == "On" ) {
-    // TODO(flynneva): add more parameters for customizing trigger
-    // trigger acqusition, delayed trigger, etc.
-     m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("TriggerSelector")
-      ->SetCurrentEntry("ExposureStart");
-     m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("TriggerMode")->SetCurrentEntry("On");
-     m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("TriggerSource")
-      ->SetCurrentEntry("Timer0Active");
-     m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("TriggerActivation")
-      ->SetCurrentEntry("LevelHigh");
-     m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("TimerSelector")
-      ->SetCurrentEntry("Timer0");
-     m_nodeMapRemoteDevice->FindNode<peak::core::nodes::FloatNode>("TimerDuration")->SetValue(500000.0);
-    std::string triggerTypeStart = "Timer0";
-    // set hardline trigger settings
-    std::string lineIn = "Line";
-    lineIn.push_back(m_peakParams.TriggerSource);  // GPIO pin number
-
-    // already including some future logic for other trigger types
-    if (triggerTypeStart == "Counter0")
-    {
-      m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("CounterSelector")
-       ->SetCurrentEntry("Counter0");
-      m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("CounterTriggerSource")
-       ->SetCurrentEntry(lineIn);
-      m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("CounterTriggerActivation")
-       ->SetCurrentEntry("RisingEdge");
-    }
-    else if (triggerTypeStart == "Timer0")
-    {
-      m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("TimerSelector")
-       ->SetCurrentEntry("Timer0");
-      m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("TimerTriggerSource")
-       ->SetCurrentEntry(lineIn);
-      m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("TimerTriggerActivation")
-       ->SetCurrentEntry("RisingEdge");
-    }
-    else
-    {
-      m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("TriggerSelector")
-       ->SetCurrentEntry(triggerTypeStart);
-      m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("TriggerSource")
-       ->SetCurrentEntry(lineIn);
-      m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("TriggerActivation")
-       ->SetCurrentEntry("RisingEdge");
+  //Set DeviceLinkThroughputLimit Parameter
+  m_nodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("DeviceLinkThroughputLimit")->SetValue(m_peakParams.DeviceLinkThroughputLimit);
+  float linkRate = m_nodeMapRemoteDevice->FindNode<peak::core::nodes::FloatNode>("DeviceLinkAcquisitionFrameRateLimit")->Value();
+  ROS_INFO_STREAM("[PEAK_CAM]: DeviceLinkThroughputLimit is set to " << m_peakParams.DeviceLinkThroughputLimit << " Bps allowing for " << linkRate << " Hz");
+  //Configure Trigger and set AcquisitionFrameRate Parameter
+  if (m_peakParams.TriggerSource == "Off") {
+    m_nodeMapRemoteDevice->FindNode<peak::core::nodes::FloatNode>("AcquisitionFrameRate")->SetValue(m_peakParams.AcquisitionFrameRate);
+    ROS_INFO_STREAM("[PEAK_CAM]: AcquisitionFrameRate is set to " << m_peakParams.AcquisitionFrameRate << " Hz");
+    if(linkRate < m_peakParams.AcquisitionFrameRate){
+      ROS_ERROR_STREAM("[PEAK_CAM]: AcquisitionFrameRate is higher than DeviceLinkAcquisitionFrameRateLimit! Expect latency and buffer overflows!");
     }
   } else {
-    ROS_INFO_STREAM("[PeakCamNode] No Trigger Specified, running continously");
+    m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("TriggerSelector")->SetCurrentEntry("ExposureStart");
+    m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("TriggerMode")->SetCurrentEntry("On");
+    m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("TriggerActivation")->SetCurrentEntry(m_peakParams.TriggerActivation);
+    m_nodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("TriggerDivider")->SetValue(m_peakParams.TriggerDivider);
+    m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("TriggerSource")->SetCurrentEntry(m_peakParams.TriggerSource);
+    ROS_INFO_STREAM("[PEAK_CAM]: No AcquisitionFrameRate is set, camera is expected to be externally triggered by " << m_peakParams.TriggerSource << " on " << m_peakParams.TriggerActivation);
+    ROS_INFO_STREAM("[PEAK_CAM]: TriggerDivider is set to " << m_peakParams.TriggerDivider);
+    ROS_WARN_STREAM("[PEAK_CAM]: Make sure resulting trigger rate stays below " << linkRate << " Hz to avoid latency and buffer overflows!");
   }
-    
+  //Set Line1 (flash output) signal source
+  m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("LineSelector")->SetCurrentEntry("Line1");
+  m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("LineSource")->SetCurrentEntry(m_peakParams.Line1Source);
+  ROS_INFO_STREAM("[PEAK_CAM]: Flash output configured to " << m_peakParams.Line1Source);
   // Set Parameters for ROS Image
   if (m_peakParams.PixelFormat == "Mono8") {
     m_pixelFormat = peak::ipl::PixelFormatName::Mono8;
@@ -387,6 +361,10 @@ void PeakCamNode::reconfigureRequest(const PeakCamConfig &config, uint32_t level
   m_peakParams.AcquisitionFrameRate = config.AcquisitionFrameRate;
   m_peakParams.Gamma = config.Gamma;
   m_peakParams.selectedDevice = config.selectedDevice;
+  m_peakParams.TriggerSource = config.TriggerSource;
+  m_peakParams.TriggerActivation = config.TriggerActivation;
+  m_peakParams.TriggerDivider = config.TriggerDivider;
+  m_peakParams.Line1Source = config.Line1Source;
   m_peakParams.GainAuto = config.GainAuto;
   m_peakParams.GainSelector = config.GainSelector;
   m_peakParams.ExposureAuto = config.ExposureAuto;
@@ -396,7 +374,7 @@ void PeakCamNode::reconfigureRequest(const PeakCamConfig &config, uint32_t level
   m_peakParams.UseOffset = config.UseOffset;
   m_peakParams.OffsetWidth = config.OffsetWidth;
   m_peakParams.OffsetHeight = config.OffsetHeight;
-  m_peakParams.TriggerMode = config.TriggerMode;
+  m_peakParams.DeviceLinkThroughputLimit = config.DeviceLinkThroughputLimit;
 }
 
 } // namespace peak_cam

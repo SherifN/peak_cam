@@ -47,7 +47,6 @@ struct Peak_Params
 {
     std::string selectedDevice{"000000"}; // default to all 0's
     int ExposureTime{100};
-    std::string TriggerMode{"Off"};
     std::string TriggerSource{"Off"};
     std::string TriggerActivation{"RisingEdge"};
     int TriggerDivider{1};
@@ -55,6 +54,9 @@ struct Peak_Params
     double AcquisitionFrameRate{1.0};
     int ImageHeight{480};
     int ImageWidth{640};
+    bool UseOffset{false};
+    int OffsetWidth{0};
+    int OffsetHeight{0};
     double Gamma{1.2};
     std::string ExposureAuto{"Off"};
     std::string GainAuto{"Off"};

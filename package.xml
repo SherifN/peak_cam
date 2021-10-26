@@ -19,6 +19,11 @@
   <depend>sensor_msgs</depend>
   <depend>std_msgs</depend>
   <depend>nodelet</depend>
+  <depend>libqt5-core</depend>
+  <depend>libqt5-gui</depend>
+  <depend>libqt5-widgets</depend>
+  <depend>libqt5-qml</depend>
+  <depend>libqt5-quick</depend>
 
   <export>
     <nodelet plugin="${prefix}/nodelet.xml" />
