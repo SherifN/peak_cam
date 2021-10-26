@@ -6,12 +6,22 @@ A Linux [ROS C++ Node](https://wiki.ros.org/peak_cam) that wraps the driver API 
 
 ### Before running the code
 
-1. install [ROS](http://wiki.ros.org/ROS/Installation)
-2. install [IDS peak](https://de.ids-imaging.com/download-vision-lin64.html)
+1. Install [ROS](http://wiki.ros.org/ROS/Installation)
+1. Install [IDS peak](https://de.ids-imaging.com/download-vision-lin64.html)
+    1. Install dependencies: `sudo apt install libqt5core5a libqt5gui5 libqt5widgets5 libqt5quick5 qml-module-qtquick-window2 qml-module-qtquick2 qml-module-qtquick-dialogs qml-module-qtquick-controls qml-module-qtquick-layouts qml-module-qt-labs-settings qml-module-qt-labs-folderlistmodel libusb-1.0-0`
+    1. Install package: `sudo dpkg -i ids-peak-<version>-<arch>.deb`
+    1. (Fix OpenCV version issue if working on NVIDIA Jetson: `sudo ln -s /usr/include/opencv4/opencv2/ /usr/include/opencv`)
+1. Test connection to your camera using `ids_visioncockpit`
+1. (Update camera firmware if needed: `ids_deviceupdate -s *<last-four-digits-serialnumber> -U --guf <path-to-guf-file>`)
+
+#### Configuration for GigE cameras
+1. Enable jumboframes for the ethernet interface(s) (e.g., `eth0`) used for your camera(s): `ip link set dev eth0 mtu 9000`
+1. Increase receive buffer size [as recommended in the IDS manual](https://en.ids-imaging.com/manuals/ids-peak/ids-peak-user-manual/1.3.1/en/operate-gige-hints-linux.html): `sudo /usr/local/scripts/ids_set_receive_buffer_size.sh`
+1. Make sure to adjust `DeviceLinkThroughputLimit` in the `.yaml` configuration file according to your desired framerate and available hardware (employing separate network interfaces may be beneficial)
 
 ### Running the code
 
-0. Clone the repository to your Linux computer
+1. Clone the repository to your Linux computer
 
 1. Generate a ROS workspace
 
@@ -23,13 +33,13 @@ A Linux [ROS C++ Node](https://wiki.ros.org/peak_cam) that wraps the driver API 
     
     `$ cd camera_ws/ && catkin_make && source devel/setup.bash`
 
-2. Set parameters such as ROS topic and acquisition rate under `launch/params/peak_cam_params.yaml`
+1. Set parameters such as ROS topic and acquisition rate under `launch/params/peak_cam_params.yaml`
 
-3. Plug the IDS vision camera and launch the node 
+1. Plug the IDS vision camera and launch the node 
 
     `$ roslaunch peak_cam peak_cam_node.launch`
     
-4. Stop the node with `Ctrl-C` (SIGINT) for controlled shutdown 
+1. Stop the node with `Ctrl-C` (SIGINT) for controlled shutdown 
 
 For multiple cameras, create a `.launch` and a `.yaml` file for each camera.
 
