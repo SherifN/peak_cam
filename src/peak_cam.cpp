@@ -51,7 +51,14 @@ Peak_Cam::Peak_Cam(ros::NodeHandle nh) : nh_private(nh)
   ROS_INFO("  camera_topic: %s", camera_topic.c_str());
 
   image_publisher = nh.advertise<sensor_msgs::Image>(camera_topic, 1);
- 
+
+  image_transport::ImageTransport it(nh);
+  pub_image_transport = it.advertiseCamera("image_transport_topic",1); 
+  ros_frame_count_ = 0;
+  //cam_intr_filename_ = "/home/jschaefe/ros_ws/src/peak_cam/cfg/idscam1.yaml";
+  nh_private.getParam("camera_intrinsics_file",cam_intr_filename_);
+  cam_name_ = "camera";
+
   f = boost::bind(&Peak_Cam::reconfigureRequest, this, _1, _2);
   server.setCallback(f);
 
@@ -299,6 +306,19 @@ void Peak_Cam::acquisitionLoop()
             cvBridgeImage.image = cvImage; 
 
             image_publisher.publish(cvBridgeImage.toImageMsg());    
+
+            camera_calibration_parsers::readCalibration(cam_intr_filename_, cam_name_, ros_cam_info_);
+
+            sensor_msgs::ImagePtr img_msg_ptr(new sensor_msgs::Image(ros_image_));
+            sensor_msgs::CameraInfoPtr cam_info_msg_ptr(new sensor_msgs::CameraInfo(ros_cam_info_));
+
+            img_msg_ptr = cvBridgeImage.toImageMsg();
+            img_msg_ptr->header.stamp = cam_info_msg_ptr->header.stamp = ros::Time::now();
+            img_msg_ptr->header.seq = cam_info_msg_ptr->header.seq = ros_frame_count_++;
+            img_msg_ptr->header.frame_id = cam_info_msg_ptr->header.frame_id;
+            cam_info_msg_ptr->width = peak_params.ImageWidth;
+            cam_info_msg_ptr->height = peak_params.ImageHeight;
+            pub_image_transport.publish(img_msg_ptr,cam_info_msg_ptr); 
 
             ROS_INFO_STREAM_ONCE("[PEAK_CAM]: Publishing data");
 

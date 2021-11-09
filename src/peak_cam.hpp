@@ -47,6 +47,9 @@
 #include <sensor_msgs/Image.h>
 #include <sensor_msgs/image_encodings.h>
 #include <dynamic_reconfigure/server.h>
+#include <image_transport/image_transport.h>
+#include <sensor_msgs/CameraInfo.h>
+#include <camera_calibration_parsers/parse.h>
 
 //OpenCV Headers
 #include <opencv2/opencv.hpp>
@@ -93,6 +96,13 @@ private:
     void closeDevice();
 
     ros::Publisher image_publisher;
+    image_transport::CameraPublisher pub_image_transport;
+    sensor_msgs::Image ros_image_;
+    sensor_msgs::CameraInfo ros_cam_info_;
+    unsigned int ros_frame_count_;
+    std::string cam_intr_filename_;
+    std::string cam_name_;
+
 
     dynamic_reconfigure::Server<Config> server;
     dynamic_reconfigure::Server<Config>::CallbackType f;

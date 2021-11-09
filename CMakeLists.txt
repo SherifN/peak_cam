@@ -36,6 +36,7 @@ find_package(catkin REQUIRED COMPONENTS
         roscpp
         sensor_msgs
         std_msgs
+        camera_calibration_parsers
 )
 
 find_package(Boost REQUIRED COMPONENTS system)
@@ -135,7 +136,7 @@ generate_dynamic_reconfigure_options(
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES cone_filter
-  CATKIN_DEPENDS cv_bridge dynamic_reconfigure image_transport roscpp sensor_msgs std_msgs
+  CATKIN_DEPENDS cv_bridge dynamic_reconfigure image_transport roscpp sensor_msgs std_msgs camera_calibration_parsers
   
   #  DEPENDS
 )
