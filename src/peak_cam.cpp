@@ -50,14 +50,14 @@ Peak_Cam::Peak_Cam(ros::NodeHandle nh) : nh_private(nh)
   ROS_INFO("Setting parameters to:");
   ROS_INFO("  camera_topic: %s", camera_topic.c_str());
 
-  image_publisher = nh.advertise<sensor_msgs::Image>(camera_topic, 1);
-
   image_transport::ImageTransport it(nh);
-  pub_image_transport = it.advertiseCamera("image_transport_topic",1); 
+  pub_image_transport = it.advertiseCamera(camera_topic,1); 
   ros_frame_count_ = 0;
   //cam_intr_filename_ = "/home/jschaefe/ros_ws/src/peak_cam/cfg/idscam1.yaml";
   nh_private.getParam("camera_intrinsics_file",cam_intr_filename_);
   cam_name_ = "camera";
+
+  set_cam_info_srv_ = nh.advertiseService("set_camera_info",&Peak_Cam::setCamInfo, this);
 
   f = boost::bind(&Peak_Cam::reconfigureRequest, this, _1, _2);
   server.setCallback(f);
@@ -305,8 +305,6 @@ void Peak_Cam::acquisitionLoop()
             cvBridgeImage.encoding = image_for_encoding.encoding; 
             cvBridgeImage.image = cvImage; 
 
-            image_publisher.publish(cvBridgeImage.toImageMsg());    
-
             camera_calibration_parsers::readCalibration(cam_intr_filename_, cam_name_, ros_cam_info_);
 
             sensor_msgs::ImagePtr img_msg_ptr(new sensor_msgs::Image(ros_image_));
@@ -398,5 +396,18 @@ void Peak_Cam::reconfigureRequest(const Config &config, uint32_t level)
     peak_params.ImageHeight = config.ImageHeight;
     peak_params.ImageWidth = config.ImageWidth;
 }
+bool Peak_Cam::setCamInfo(sensor_msgs::SetCameraInfo::Request& req, sensor_msgs::SetCameraInfo::Response& rsp) {
+    ros_cam_info_ = req.camera_info;
+    //ros_cam_info_.header.frame_id = frame_name_;    
+    rsp.success = Peak_Cam::saveIntrinsicsFile();
+    rsp.status_message = (rsp.success) ? "successfully wrote camera info to file" : "failed to write camera info to file";
+    return true;
+}
 
+bool Peak_Cam::saveIntrinsicsFile() {
+  if (camera_calibration_parsers::writeCalibration(cam_intr_filename_, cam_name_, ros_cam_info_)) {
+    return true;
+  }
+  return false;
+}
 } // namespace peak_cam
