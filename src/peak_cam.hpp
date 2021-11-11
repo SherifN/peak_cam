@@ -105,6 +105,7 @@ private:
     unsigned int ros_frame_count_;
     std::string cam_intr_filename_;
     std::string cam_name_;
+    std::string frame_name_;
 
     ros::ServiceServer set_cam_info_srv_;
 

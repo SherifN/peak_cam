@@ -55,9 +55,11 @@ Peak_Cam::Peak_Cam(ros::NodeHandle nh) : nh_private(nh)
   ros_frame_count_ = 0;
   //cam_intr_filename_ = "/home/jschaefe/ros_ws/src/peak_cam/cfg/idscam1.yaml";
   nh_private.getParam("camera_intrinsics_file",cam_intr_filename_);
-  cam_name_ = "camera";
+  nh_private.getParam("camera_name", cam_name_);
 
-  set_cam_info_srv_ = nh.advertiseService("set_camera_info",&Peak_Cam::setCamInfo, this);
+  set_cam_info_srv_ = nh.advertiseService(cam_name_+"/set_camera_info",&Peak_Cam::setCamInfo, this);
+  
+  nh_private.getParam("frame_name", frame_name_);
 
   f = boost::bind(&Peak_Cam::reconfigureRequest, this, _1, _2);
   server.setCallback(f);
@@ -398,7 +400,7 @@ void Peak_Cam::reconfigureRequest(const Config &config, uint32_t level)
 }
 bool Peak_Cam::setCamInfo(sensor_msgs::SetCameraInfo::Request& req, sensor_msgs::SetCameraInfo::Response& rsp) {
     ros_cam_info_ = req.camera_info;
-    //ros_cam_info_.header.frame_id = frame_name_;    
+    ros_cam_info_.header.frame_id = frame_name_;    
     rsp.success = Peak_Cam::saveIntrinsicsFile();
     rsp.status_message = (rsp.success) ? "successfully wrote camera info to file" : "failed to write camera info to file";
     return true;

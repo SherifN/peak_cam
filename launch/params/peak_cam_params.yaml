@@ -8,6 +8,10 @@
 
 camera_topic: image_raw
 
+camera_name: camera
+
+frame_name: camera
+
 # choose which device to enter by entering its serial number here
 # if you dont know it, run this node once and all serial nodes should be printed out
 selectedDevice: "0000000000"
@@ -72,3 +76,5 @@ GainAuto: "Continuous"
 # GainSelector Setting 
 # Possible: ["AnalogAllSource", "AnalogAll", "AnalogRed", "AnalogGreen", "AnalogBlue", "DigitalAll", "DigitalRed", "DigitalGreen", "DigitalBlue"] as string! 
 GainSelector: "DigitalAll"
+
+camera_intrinsics_file: ""
