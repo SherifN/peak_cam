@@ -53,7 +53,7 @@ Peak_Cam::Peak_Cam(ros::NodeHandle nh) : nh_private(nh)
   image_transport::ImageTransport it(nh);
   pub_image_transport = it.advertiseCamera(camera_topic,1); 
   ros_frame_count_ = 0;
-  //cam_intr_filename_ = "/home/jschaefe/ros_ws/src/peak_cam/cfg/idscam1.yaml";
+  
   nh_private.getParam("camera_intrinsics_file",cam_intr_filename_);
   nh_private.getParam("camera_name", cam_name_);
 
@@ -277,6 +277,7 @@ void Peak_Cam::setDeviceParameters()
 
 void Peak_Cam::acquisitionLoop()
 {
+    ros::Rate r(10);
     while (acquisitionLoop_running)
     {
         try
@@ -332,6 +333,8 @@ void Peak_Cam::acquisitionLoop()
             ROS_ERROR("[PEAK_CAM]: No device reset available");
             ROS_ERROR("[PEAK_CAM]: Restart peak cam node!");
         }        
+        ros::spinOnce();
+        r.sleep();
     }
 }
 
