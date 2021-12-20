@@ -333,7 +333,6 @@ void Peak_Cam::acquisitionLoop()
             ROS_ERROR("[PEAK_CAM]: No device reset available");
             ROS_ERROR("[PEAK_CAM]: Restart peak cam node!");
         }        
-        ros::spinOnce();
         r.sleep();
     }
 }
