@@ -4,5 +4,6 @@
 
     <node pkg="peak_cam" type="peak_cam_node" name="$(arg node_name)" output="screen">
         <rosparam command="load" file="$(arg config)"/>
+        <param name="camera_intrinsics_file" type="string" value="$(env HOME)/.ros/camera_info/$(arg camera_name).yaml" /> <!-- default: ~/.ros/camera_info/<camera_name>.yaml -->
     </node>
 </launch>

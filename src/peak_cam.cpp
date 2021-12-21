@@ -44,8 +44,7 @@ namespace peak_cam
 
 Peak_Cam::Peak_Cam(ros::NodeHandle nh) : nh_private(nh)
 {
-  std::string camera_topic;
-  nh_private.getParam("camera_topic", camera_topic);
+  nh_private.param<std::string>("camera_topic", camera_topic, "image_raw");
 
   ROS_INFO("Setting parameters to:");
   ROS_INFO("  camera_topic: %s", camera_topic.c_str());
@@ -53,14 +52,15 @@ Peak_Cam::Peak_Cam(ros::NodeHandle nh) : nh_private(nh)
   image_transport::ImageTransport it(nh);
   pub_image_transport = it.advertiseCamera(camera_topic,1); 
   ros_frame_count_ = 0;
+
+  nh_private.param<std::string>("camera_name", cam_name_, "peak_camera");
+  nh_private.param<std::string>("frame_name", frame_name_, cam_name_);
   
-  nh_private.getParam("camera_intrinsics_file",cam_intr_filename_);
-  nh_private.getParam("camera_name", cam_name_);
+  std::string cam_intr_filename_default = std::string(getenv("HOME")) + "/.ros/camera_info/" + cam_name_ + ".yaml";
+  nh_private.param<std::string>("camera_intrinsics_file", cam_intr_filename_, cam_intr_filename_default);
 
   set_cam_info_srv_ = nh.advertiseService(cam_name_+"/set_camera_info",&Peak_Cam::setCamInfo, this);
   
-  nh_private.getParam("frame_name", frame_name_);
-
   f = boost::bind(&Peak_Cam::reconfigureRequest, this, _1, _2);
   server.setCallback(f);
 
@@ -277,7 +277,6 @@ void Peak_Cam::setDeviceParameters()
 
 void Peak_Cam::acquisitionLoop()
 {
-    ros::Rate r(10);
     while (acquisitionLoop_running)
     {
         try
@@ -332,8 +331,7 @@ void Peak_Cam::acquisitionLoop()
             ROS_ERROR("[PEAK_CAM]: Acquisition loop stopped, device may be disconnected!");
             ROS_ERROR("[PEAK_CAM]: No device reset available");
             ROS_ERROR("[PEAK_CAM]: Restart peak cam node!");
-        }        
-        r.sleep();
+        }
     }
 }
 

@@ -98,14 +98,14 @@ private:
     bool setCamInfo(sensor_msgs::SetCameraInfo::Request& req, sensor_msgs::SetCameraInfo::Response& rsp);
     bool saveIntrinsicsFile();
 
-    ros::Publisher image_publisher;
     image_transport::CameraPublisher pub_image_transport;
     sensor_msgs::Image ros_image_;
     sensor_msgs::CameraInfo ros_cam_info_;
     unsigned int ros_frame_count_;
-    std::string cam_intr_filename_;
+    std::string camera_topic;
     std::string cam_name_;
     std::string frame_name_;
+    std::string cam_intr_filename_;
 
     ros::ServiceServer set_cam_info_srv_;
 

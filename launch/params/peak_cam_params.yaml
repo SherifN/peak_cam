@@ -8,9 +8,11 @@
 
 camera_topic: image_raw
 
-camera_name: camera
+# unique camera name for calibration and set_camera_info service
+camera_name: peak_camera
 
-frame_name: camera
+# coordinate frame of the imager stored in image header enabling 3D coordinate transforms in tf
+frame_name: peak_camera
 
 # choose which device to enter by entering its serial number here
 # if you dont know it, run this node once and all serial nodes should be printed out
@@ -76,5 +78,3 @@ GainAuto: "Continuous"
 # GainSelector Setting 
 # Possible: ["AnalogAllSource", "AnalogAll", "AnalogRed", "AnalogGreen", "AnalogBlue", "DigitalAll", "DigitalRed", "DigitalGreen", "DigitalBlue"] as string! 
 GainSelector: "DigitalAll"
-
-camera_intrinsics_file: ""
