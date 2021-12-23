@@ -102,7 +102,7 @@ private:
     sensor_msgs::Image ros_image_;
     sensor_msgs::CameraInfo ros_cam_info_;
     unsigned int ros_frame_count_;
-    std::string camera_topic;
+    std::string camera_topic_;
     std::string cam_name_;
     std::string frame_name_;
     std::string cam_intr_filename_;
