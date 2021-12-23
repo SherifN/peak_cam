@@ -44,20 +44,21 @@ namespace peak_cam
 
 Peak_Cam::Peak_Cam(ros::NodeHandle nh) : nh_private(nh)
 {
-  nh_private.param<std::string>("camera_topic", camera_topic, "image_raw");
-
+  nh_private.param<std::string>("camera_topic", camera_topic_);
   ROS_INFO("Setting parameters to:");
-  ROS_INFO("  camera_topic: %s", camera_topic.c_str());
+  ROS_INFO("  camera_topic: %s", camera_topic_.c_str());
 
   image_transport::ImageTransport it(nh);
-  pub_image_transport = it.advertiseCamera(camera_topic,1); 
+  pub_image_transport = it.advertiseCamera(camera_topic_,1); 
   ros_frame_count_ = 0;
 
-  nh_private.param<std::string>("camera_name", cam_name_, "peak_camera");
-  nh_private.param<std::string>("frame_name", frame_name_, cam_name_);
-  
-  std::string cam_intr_filename_default = std::string(getenv("HOME")) + "/.ros/camera_info/" + cam_name_ + ".yaml";
-  nh_private.param<std::string>("camera_intrinsics_file", cam_intr_filename_, cam_intr_filename_default);
+  nh_private.param<std::string>("camera_name", cam_name_);
+  nh_private.param<std::string>("frame_name", frame_name_);
+
+  nh_private.param<std::string>("camera_intrinsics_file", cam_intr_filename_);
+  if (cam_intr_filename_.length() <= 0) { // Use default filename
+    cam_intr_filename_ = std::string(getenv("HOME")) + "/.ros/camera_info/" + cam_name_ + ".yaml";
+  }
 
   set_cam_info_srv_ = nh.advertiseService(cam_name_+"/set_camera_info",&Peak_Cam::setCamInfo, this);
   
