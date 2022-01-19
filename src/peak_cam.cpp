@@ -44,7 +44,7 @@ namespace peak_cam
 
 Peak_Cam::Peak_Cam(ros::NodeHandle nh) : nh_private(nh)
 {
-  nh_private.param<std::string>("camera_topic", camera_topic_);
+  nh_private.param<std::string>("camera_topic", camera_topic_,"");
   ROS_INFO("Setting parameters to:");
   ROS_INFO("  camera_topic: %s", camera_topic_.c_str());
 
@@ -52,13 +52,10 @@ Peak_Cam::Peak_Cam(ros::NodeHandle nh) : nh_private(nh)
   pub_image_transport = it.advertiseCamera(camera_topic_,1); 
   ros_frame_count_ = 0;
 
-  nh_private.param<std::string>("camera_name", cam_name_);
-  nh_private.param<std::string>("frame_name", frame_name_);
+  nh_private.param<std::string>("camera_name", cam_name_,"");
+  nh_private.param<std::string>("frame_name", frame_name_, "");
 
-  nh_private.param<std::string>("camera_intrinsics_file", cam_intr_filename_);
-  if (cam_intr_filename_.length() <= 0) { // Use default filename
-    cam_intr_filename_ = std::string(getenv("HOME")) + "/.ros/camera_info/" + cam_name_ + ".yaml";
-  }
+  nh_private.param<std::string>("camera_intrinsics_file", cam_intr_filename_,"");
 
   set_cam_info_srv_ = nh.advertiseService(cam_name_+"/set_camera_info",&Peak_Cam::setCamInfo, this);
   
@@ -316,7 +313,7 @@ void Peak_Cam::acquisitionLoop()
             img_msg_ptr = cvBridgeImage.toImageMsg();
             img_msg_ptr->header.stamp = cam_info_msg_ptr->header.stamp = ros::Time::now();
             img_msg_ptr->header.seq = cam_info_msg_ptr->header.seq = ros_frame_count_++;
-            img_msg_ptr->header.frame_id = cam_info_msg_ptr->header.frame_id;
+            img_msg_ptr->header.frame_id = cam_info_msg_ptr->header.frame_id = frame_name_;
             cam_info_msg_ptr->width = peak_params.ImageWidth;
             cam_info_msg_ptr->height = peak_params.ImageHeight;
             pub_image_transport.publish(img_msg_ptr,cam_info_msg_ptr); 
@@ -398,6 +395,8 @@ void Peak_Cam::reconfigureRequest(const Config &config, uint32_t level)
     
     peak_params.ImageHeight = config.ImageHeight;
     peak_params.ImageWidth = config.ImageWidth;
+    frame_name_ = config.frame_name;
+    cam_intr_filename_ = config.camera_intrinsics_file;
 }
 bool Peak_Cam::setCamInfo(sensor_msgs::SetCameraInfo::Request& req, sensor_msgs::SetCameraInfo::Response& rsp) {
     ros_cam_info_ = req.camera_info;
