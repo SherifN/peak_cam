@@ -44,7 +44,7 @@ namespace peak_cam
 
 Peak_Cam::Peak_Cam(ros::NodeHandle nh) : nh_private(nh)
 {
-  nh_private.param<std::string>("camera_topic", camera_topic_,"");
+  nh_private.getParam("camera_topic", camera_topic_);
   ROS_INFO("Setting parameters to:");
   ROS_INFO("  camera_topic: %s", camera_topic_.c_str());
 
@@ -52,10 +52,10 @@ Peak_Cam::Peak_Cam(ros::NodeHandle nh) : nh_private(nh)
   pub_image_transport = it.advertiseCamera(camera_topic_,1); 
   ros_frame_count_ = 0;
 
-  nh_private.param<std::string>("camera_name", cam_name_,"");
-  nh_private.param<std::string>("frame_name", frame_name_, "");
+  nh_private.getParam("camera_name", cam_name_);
+  nh_private.getParam("frame_name", frame_name_);
 
-  nh_private.param<std::string>("camera_intrinsics_file", cam_intr_filename_,"");
+  nh_private.getParam("camera_intrinsics_file", cam_intr_filename_);
 
   set_cam_info_srv_ = nh.advertiseService(cam_name_+"/set_camera_info",&Peak_Cam::setCamInfo, this);
   
