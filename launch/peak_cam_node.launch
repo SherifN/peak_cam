@@ -1,7 +1,7 @@
 <launch>
     <arg name="node_name" default="peak_cam_node" />
     <arg name="config" default="$(find peak_cam)/launch/params/peak_cam_params.yaml" />
-    <arg name="camera_intrinsics_file" default="$(env HOME)/.ros/camera_info/$(arg node_name).yaml"/> <!-- default: ~/.ros/camera_info/<camera_name>.yaml in peak_cam.cpp-->
+    <arg name="camera_intrinsics_file" default="$(env HOME)/.ros/camera_info/$(arg node_name).yaml"/> <!-- default: ~/.ros/camera_info/<node_name>.yaml-->
 
     <node pkg="peak_cam" type="peak_cam_node" name="$(arg node_name)" output="screen">
         <rosparam command="load" file="$(arg config)"/>
