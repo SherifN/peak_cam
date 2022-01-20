@@ -70,7 +70,6 @@ int main(int argc, char **argv)
   
     // Seperating acquisition Loop on particular thread
     std::thread acquisitionThread(&peak_cam::Peak_Cam::acquisitionLoop, &peak_Cam);
-    acquisitionThread.join();
 
     while (ros::ok())
     {
@@ -80,6 +79,8 @@ int main(int argc, char **argv)
         if (!*acquisitionLoop_running_ptr)
             return EXIT_SUCCESS;
     }
+
+    acquisitionThread.join();
 
     return EXIT_SUCCESS;
 }

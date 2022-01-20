@@ -44,14 +44,21 @@ namespace peak_cam
 
 Peak_Cam::Peak_Cam(ros::NodeHandle nh) : nh_private(nh)
 {
-  std::string camera_topic;
-  nh_private.getParam("camera_topic", camera_topic);
-
+  nh_private.getParam("camera_topic", camera_topic_);
   ROS_INFO("Setting parameters to:");
-  ROS_INFO("  camera_topic: %s", camera_topic.c_str());
+  ROS_INFO("  camera_topic: %s", camera_topic_.c_str());
 
-  image_publisher = nh.advertise<sensor_msgs::Image>(camera_topic, 1);
- 
+  image_transport::ImageTransport it(nh);
+  pub_image_transport = it.advertiseCamera(camera_topic_,1); 
+  ros_frame_count_ = 0;
+
+  nh_private.getParam("camera_name", cam_name_);
+  nh_private.getParam("frame_name", frame_name_);
+
+  nh_private.getParam("camera_intrinsics_file", cam_intr_filename_);
+
+  set_cam_info_srv_ = nh.advertiseService(cam_name_+"/set_camera_info",&Peak_Cam::setCamInfo, this);
+  
   f = boost::bind(&Peak_Cam::reconfigureRequest, this, _1, _2);
   server.setCallback(f);
 
@@ -298,7 +305,18 @@ void Peak_Cam::acquisitionLoop()
             cvBridgeImage.encoding = image_for_encoding.encoding; 
             cvBridgeImage.image = cvImage; 
 
-            image_publisher.publish(cvBridgeImage.toImageMsg());    
+            camera_calibration_parsers::readCalibration(cam_intr_filename_, cam_name_, ros_cam_info_);
+
+            sensor_msgs::ImagePtr img_msg_ptr(new sensor_msgs::Image(ros_image_));
+            sensor_msgs::CameraInfoPtr cam_info_msg_ptr(new sensor_msgs::CameraInfo(ros_cam_info_));
+
+            img_msg_ptr = cvBridgeImage.toImageMsg();
+            img_msg_ptr->header.stamp = cam_info_msg_ptr->header.stamp = ros::Time::now();
+            img_msg_ptr->header.seq = cam_info_msg_ptr->header.seq = ros_frame_count_++;
+            img_msg_ptr->header.frame_id = cam_info_msg_ptr->header.frame_id = frame_name_;
+            cam_info_msg_ptr->width = peak_params.ImageWidth;
+            cam_info_msg_ptr->height = peak_params.ImageHeight;
+            pub_image_transport.publish(img_msg_ptr,cam_info_msg_ptr); 
 
             ROS_INFO_STREAM_ONCE("[PEAK_CAM]: Publishing data");
 
@@ -311,7 +329,7 @@ void Peak_Cam::acquisitionLoop()
             ROS_ERROR("[PEAK_CAM]: Acquisition loop stopped, device may be disconnected!");
             ROS_ERROR("[PEAK_CAM]: No device reset available");
             ROS_ERROR("[PEAK_CAM]: Restart peak cam node!");
-        }        
+        }
     }
 }
 
@@ -377,6 +395,21 @@ void Peak_Cam::reconfigureRequest(const Config &config, uint32_t level)
     
     peak_params.ImageHeight = config.ImageHeight;
     peak_params.ImageWidth = config.ImageWidth;
+    frame_name_ = config.frame_name;
+    cam_intr_filename_ = config.camera_intrinsics_file;
+}
+bool Peak_Cam::setCamInfo(sensor_msgs::SetCameraInfo::Request& req, sensor_msgs::SetCameraInfo::Response& rsp) {
+    ros_cam_info_ = req.camera_info;
+    ros_cam_info_.header.frame_id = frame_name_;    
+    rsp.success = Peak_Cam::saveIntrinsicsFile();
+    rsp.status_message = (rsp.success) ? "successfully wrote camera info to file" : "failed to write camera info to file";
+    return true;
 }
 
+bool Peak_Cam::saveIntrinsicsFile() {
+  if (camera_calibration_parsers::writeCalibration(cam_intr_filename_, cam_name_, ros_cam_info_)) {
+    return true;
+  }
+  return false;
+}
 } // namespace peak_cam

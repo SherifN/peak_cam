@@ -2,6 +2,8 @@
 
 A Linux [ROS C++ Node](https://wiki.ros.org/peak_cam) that wraps the driver API for IDS vision cameras using IDS peak software. Tested on Ubuntu 18.04 LTS and 20.04 LTS.
 
+Supports the set_camera_info service used by the ROS [camera_calibration](http://wiki.ros.org/camera_calibration) package.
+
 ## How to run
 
 ### Before running the code
@@ -15,7 +17,7 @@ A Linux [ROS C++ Node](https://wiki.ros.org/peak_cam) that wraps the driver API 
 1. (Update camera firmware if needed: `ids_deviceupdate -s *<last-four-digits-serialnumber> -U --guf <path-to-guf-file>`)
 
 #### Configuration for GigE cameras
-1. Enable jumboframes for the ethernet interface(s) (e.g., `eth0`) used for your camera(s): `ip link set dev eth0 mtu 9000`
+1. Enable jumboframes for the ethernet interface(s) (e.g., `eth0`) used for your camera(s) by setting MTU to 9000 in your network manager, by editing `/etc/network/interfaces` or non-permanent using `ip link set dev eth0 mtu 9000`
 1. Increase receive buffer size [as recommended in the IDS manual](https://en.ids-imaging.com/manuals/ids-peak/ids-peak-user-manual/1.3.1/en/operate-gige-hints-linux.html): `sudo /usr/local/scripts/ids_set_receive_buffer_size.sh`
 1. Make sure to adjust `DeviceLinkThroughputLimit` in the `.yaml` configuration file according to your desired framerate and available hardware (employing separate network interfaces may be beneficial)
 
@@ -77,7 +79,7 @@ The cameras can also be triggered by the pulses of external devices such as a li
     TriggerSource: "Line0"
     ```
 
-Copyright (c) 2020, Sherif Nekkah, Felix Keppler (Fraunhofer IVI) and Contributors 
+Copyright (c) 2020, Sherif Nekkah, Felix Keppler (Fraunhofer IVI), Johannes Schäfer (Fraunhofer IVI) and Contributors 
 
 All rights reserved.
 

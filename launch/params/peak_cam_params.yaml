@@ -8,6 +8,12 @@
 
 camera_topic: image_raw
 
+# unique camera name for calibration and set_camera_info service
+camera_name: peak_camera
+
+# coordinate frame of the imager stored in image header enabling 3D coordinate transforms in tf
+frame_name: peak_camera
+
 # choose which device to enter by entering its serial number here
 # if you dont know it, run this node once and all serial nodes should be printed out
 selectedDevice: "0000000000"
