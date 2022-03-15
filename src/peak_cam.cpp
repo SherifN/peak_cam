@@ -216,6 +216,7 @@ void Peak_Cam::setDeviceParameters()
         //Configure Trigger and set AcquisitionFrameRate Parameter
         if (peak_params.TriggerSource == "Off")
         {
+            m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("TriggerMode")->SetCurrentEntry("Off");
             m_nodeMapRemoteDevice->FindNode<peak::core::nodes::FloatNode>("AcquisitionFrameRate")->SetValue(peak_params.AcquisitionFrameRate);
             ROS_INFO_STREAM("[PEAK_CAM]: AcquisitionFrameRate is set to " << peak_params.AcquisitionFrameRate << " Hz");
             if(linkRate < peak_params.AcquisitionFrameRate){
