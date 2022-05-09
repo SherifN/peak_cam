@@ -7,9 +7,6 @@ add_compile_options(-std=c++14)
 set(CMAKE_BUILD_TYPE Release)
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 
-set(IDS_IPL_VERSION 1.2.0)
-set(IDS_VERSION 1.2.0)
-
 ## Not finding OpenCV? Normally the needed packages should already be included in ROS
 ## Install OpenCV and copy the builded folder into opt
 ## Remove the hashtags from the following three lines
@@ -20,14 +17,6 @@ set(IDS_VERSION 1.2.0)
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-
-include_directories(
-        src
-	/usr/include/ids_peak-${IDS_VERSION}/
-	/usr/include/ids_peak_ipl-${IDS_IPL_VERSION}/
-	/usr/lib/ids_peak-${IDS_VERSION}/
-	/usr/lib/ids_peak_ipl-${IDS_IPL_VERSION}/
-)
 
 find_package(catkin REQUIRED COMPONENTS
         cv_bridge
@@ -40,6 +29,8 @@ find_package(catkin REQUIRED COMPONENTS
 )
 
 find_package(Boost REQUIRED COMPONENTS system)
+find_package(ids_peak REQUIRED)  # get CMake macro for IDS_PEAK_INCLUDE_DIR and IDS_PEAK_LIBRARIES
+find_package(ids_peak_ipl REQUIRED)  # get CMake macro for IDS_PEAK_IPL_INCLUDE_DIR and IDS_PEAK_IPL_LIBRARIES
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -148,8 +139,11 @@ catkin_package(
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 include_directories(
+  src
   include
   ${catkin_INCLUDE_DIRS}
+  ${IDS_PEAK_INCLUDE_DIR}
+  ${IDS_PEAK_IPL_INCLUDE_DIR}
 )
 
 
@@ -175,11 +169,11 @@ add_executable(${PROJECT_NAME}_node src/peak_cam_node.cpp
 ## same as for the library above
 
 ## Specify libraries to link a library or executable target against
- target_link_libraries(${PROJECT_NAME}_node
-   ${catkin_LIBRARIES}
-   ids_peak
-   ids_peak_ipl
- )
+target_link_libraries(${PROJECT_NAME}_node
+  ${catkin_LIBRARIES}
+  ${IDS_PEAK_LIBRARIES}
+  ${IDS_PEAK_IPL_LIBRARIES}
+)
 
 #############
 ## Install ##
